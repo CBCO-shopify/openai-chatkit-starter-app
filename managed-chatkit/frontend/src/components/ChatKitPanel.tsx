@@ -68,15 +68,15 @@ export function ChatKitPanel() {
           backgroundColor: "rgba(255,255,255,0.2)", 
           display: "flex", 
           alignItems: "center", 
-          justifyContent: "center" 
+          justifyContent: "center",
+          fontSize: "18px",
+          fontWeight: "bold"
         }}>
-          <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
-          </svg>
+          T
         </div>
         <div>
-          <div style={{ fontWeight: 600, fontSize: "16px" }}>Curtain & Blind Co</div>
-          <div style={{ fontSize: "12px", opacity: 0.8 }}>Ask us anything about curtains & blinds</div>
+          <div style={{ fontWeight: 600, fontSize: "16px" }}>Traxine</div>
+          <div style={{ fontSize: "12px", opacity: 0.8 }}>C&BCo's AI Assistant</div>
         </div>
       </div>
       
