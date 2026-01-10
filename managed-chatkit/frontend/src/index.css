@@ -1,82 +1,41 @@
-import { useMemo } from "react";
-import { ChatKit, useChatKit } from "@openai/chatkit-react";
-import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
+@import "tailwindcss";
 
-export function ChatKitPanel() {
-  const getClientSecret = useMemo(
-    () => createClientSecretFetcher(workflowId),
-    []
-  );
+:root {
+  --background: #f8f7f4;
+  --foreground: #2c3e50;
+  --primary: #3d6b4f;
+  --primary-foreground: #ffffff;
+  color-scheme: light;
+}
 
-  const chatkit = useChatKit({
-    api: { getClientSecret },
-    onClientToolCall: async (toolCall) => {
-      console.log("Client tool called:", toolCall.name, toolCall.arguments);
-      
-      if (toolCall.name === "create_gorgias_ticket") {
-        try {
-          const response = await fetch("https://n8n.curtainworld.net.au/webhook/gorgias-escalation", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              customer_email: toolCall.arguments.customer_email,
-              customer_phone: toolCall.arguments.customer_phone || "",
-              subject: toolCall.arguments.subject,
-              summary: toolCall.arguments.summary,
-              conversation_transcript: toolCall.arguments.conversation_transcript
-            })
-          });
+:root[data-color-scheme="dark"] {
+  --background: #1a1a1a;
+  --foreground: #ededed;
+  --primary: #4a7c5f;
+  --primary-foreground: #ffffff;
+  color-scheme: dark;
+}
 
-          if (!response.ok) {
-            throw new Error("Failed to create ticket");
-          }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme]) {
+    --background: #1a1a1a;
+    --foreground: #ededed;
+    --primary: #4a7c5f;
+    --primary-foreground: #ffffff;
+    color-scheme: dark;
+  }
+}
 
-          return {
-            success: true,
-            message: "Support ticket created successfully. Our team will be in touch within 1 business day."
-          };
-        } catch (error) {
-          console.error("Gorgias ticket error:", error);
-          return {
-            success: false,
-            message: "There was an issue creating the support ticket. Please call us on 1300 301 368."
-          };
-        }
-      }
-      
-      return { error: "Unknown tool: " + toolCall.name };
-    }
-  });
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-mono: SFMono-Regular, Consolas, "Liberation Mono", monospace;
+}
 
-  return (
-    <div className="flex flex-col h-screen w-full bg-[#f8f7f4]">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-[#3d6b4f] text-white">
-        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
-          </svg>
-        </div>
-        <div>
-          <div className="font-semibold text-base">Curtain & Blind Co</div>
-          <div className="text-xs text-white/80">Ask us anything about curtains & blinds</div>
-        </div>
-      </div>
-      
-      {/* Chat Area */}
-      <div className="flex-1 overflow-hidden">
-        <ChatKit 
-          control={chatkit.control} 
-          className="h-full w-full"
-        />
-      </div>
-      
-      {/* Footer */}
-      <div className="px-4 py-2 text-center text-xs text-gray-400 bg-white border-t border-gray-100">
-        Powered by The Curtain & Blind Co
-      </div>
-    </div>
-  );
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
 }
