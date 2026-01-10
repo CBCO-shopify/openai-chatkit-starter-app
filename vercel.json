@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/create-session",
+      "destination": "https://n8n.curtainworld.net.au/webhook/chatkit-session"
+    }
+  ]
+}
