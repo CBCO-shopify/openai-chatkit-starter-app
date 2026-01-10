@@ -11,7 +11,7 @@ export const workflowId = (() => {
 
 export function createClientSecretFetcher(
   workflow: string,
-  endpoint = "/api/create-session"
+  endpoint = "https://n8n.curtainworld.net.au/webhook/chatkit-session"
 ) {
   return async (currentSecret: string | null) => {
     if (currentSecret) return currentSecret;
