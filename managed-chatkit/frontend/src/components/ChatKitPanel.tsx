@@ -51,8 +51,51 @@ export function ChatKitPanel() {
   });
 
   return (
-    <div className="flex h-[90vh] w-full rounded-2xl bg-white shadow-sm transition-colors dark:bg-slate-900">
-      <ChatKit control={chatkit.control} className="h-full w-full" />
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100%", backgroundColor: "#f8f7f4" }}>
+      {/* Header */}
+      <div style={{ 
+        display: "flex", 
+        alignItems: "center", 
+        gap: "12px", 
+        padding: "12px 16px", 
+        backgroundColor: "#3d6b4f", 
+        color: "white" 
+      }}>
+        <div style={{ 
+          width: "40px", 
+          height: "40px", 
+          borderRadius: "50%", 
+          backgroundColor: "rgba(255,255,255,0.2)", 
+          display: "flex", 
+          alignItems: "center", 
+          justifyContent: "center" 
+        }}>
+          <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+          </svg>
+        </div>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: "16px" }}>Curtain & Blind Co</div>
+          <div style={{ fontSize: "12px", opacity: 0.8 }}>Ask us anything about curtains & blinds</div>
+        </div>
+      </div>
+      
+      {/* Chat Area */}
+      <div style={{ flex: 1, overflow: "hidden" }}>
+        <ChatKit control={chatkit.control} style={{ height: "100%", width: "100%" }} />
+      </div>
+      
+      {/* Footer */}
+      <div style={{ 
+        padding: "8px 16px", 
+        textAlign: "center", 
+        fontSize: "11px", 
+        color: "#999", 
+        backgroundColor: "white", 
+        borderTop: "1px solid #eee" 
+      }}>
+        Powered by The Curtain & Blind Co
+      </div>
     </div>
   );
 }
