@@ -1,41 +1,3 @@
-import { useMemo } from "react";
-import { ChatKit, useChatKit } from "@openai/chatkit-react";
-import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
-
-export function ChatKitPanel() {
-  const getClientSecret = useMemo(
-    () => createClientSecretFetcher(workflowId),
-    []
-  );
-
-  const chatkit = useChatKit({
-    api: { getClientSecret },
-    header: { enabled: false },
-    startScreen: {
-      greeting: "Hi! I'm Trax, C&BCo's new AI agent in training. If at any point you'd prefer help from a human, just let me know and I'll send your query to our service team. How can I help you today?",
-      prompts: [
-        {
-          label: "Order Enquiry",
-          prompt: "I'd like to check on an existing order",
-          icon: "lucide:package"
-        },
-        {
-          label: "Product Help",
-          prompt: "I need help choosing the right product for my space",
-          icon: "search"
-        },
-        {
-          label: "Measure & Install",
-          prompt: "I need guidance on measuring or installing my order",
-          icon: "info"
-        },
-        {
-          label: "Other",
-          prompt: "I have a different question",
-          icon: "circle-question"
-        }
-      ]
-    },
 onClientToolCall: async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall.arguments);
       
@@ -95,57 +57,6 @@ onClientToolCall: async (toolCall) => {
           };
         }
       }
-      
-      return { error: "Unknown tool: " + toolCall.name };
-    }
-  });
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100%", backgroundColor: "#f8f7f4" }}>
-      {/* Header */}
-      <div style={{ 
-        display: "flex", 
-        alignItems: "center", 
-        gap: "12px", 
-        padding: "12px 16px", 
-        backgroundColor: "#3d6b4f", 
-        color: "white" 
-      }}>
-        <div style={{ 
-          width: "40px", 
-          height: "40px", 
-          borderRadius: "50%", 
-          backgroundColor: "rgba(255,255,255,0.2)", 
-          display: "flex", 
-          alignItems: "center", 
-          justifyContent: "center",
-          fontSize: "18px",
-          fontWeight: "bold"
-        }}>
-          
-        </div>
-        <div>
-          <div style={{ fontWeight: 600, fontSize: "16px" }}>Traxine</div>
-          <div style={{ fontSize: "12px", opacity: 0.8 }}>C&BCo's AI Assistant</div>
-        </div>
-      </div>
-      
-      {/* Chat Area */}
-      <div style={{ flex: 1, overflow: "hidden" }}>
-        <ChatKit control={chatkit.control} style={{ height: "100%", width: "100%" }} />
-      </div>
-      
-      {/* Footer */}
-      <div style={{ 
-        padding: "8px 16px", 
-        textAlign: "center", 
-        fontSize: "11px", 
-        color: "#999", 
-        backgroundColor: "white", 
-        borderTop: "1px solid #eee" 
-      }}>
-        Powered by The Curtain & Blind Co
-      </div>
-    </div>
-  );
-}
+      return { error: "Unknown tool" };
+    }
