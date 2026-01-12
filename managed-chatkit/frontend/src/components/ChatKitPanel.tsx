@@ -87,24 +87,31 @@ export function ChatKitPanel() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      const textarea = document.querySelector('textarea[placeholder="Chat to Trax"]');
-      const form = textarea?.closest('form');
+      console.log("=== DEBUG: Looking for ChatKit elements ===");
       
-      if (textarea && form) {
-        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
-        if (nativeInputValueSetter) {
-          nativeInputValueSetter.call(textarea, 'hi');
-          textarea.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-        
-        setTimeout(() => {
-          const submitButton = form.querySelector('button[type="submit"]');
-          if (submitButton) {
-            (submitButton as HTMLButtonElement).click();
-          }
-        }, 100);
-      }
-    }, 500);
+      const allTextareas = document.querySelectorAll('textarea');
+      console.log("All textareas found:", allTextareas.length);
+      allTextareas.forEach((ta, i) => {
+        console.log(`Textarea ${i}:`, ta.placeholder, ta);
+      });
+
+      const allInputs = document.querySelectorAll('input');
+      console.log("All inputs found:", allInputs.length);
+      allInputs.forEach((inp, i) => {
+        console.log(`Input ${i}:`, inp.placeholder, inp.type, inp);
+      });
+
+      const allForms = document.querySelectorAll('form');
+      console.log("All forms found:", allForms.length);
+
+      const allButtons = document.querySelectorAll('button');
+      console.log("All buttons found:", allButtons.length);
+      allButtons.forEach((btn, i) => {
+        console.log(`Button ${i}:`, btn.type, btn.textContent, btn);
+      });
+
+      console.log("=== END DEBUG ===");
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, []);
