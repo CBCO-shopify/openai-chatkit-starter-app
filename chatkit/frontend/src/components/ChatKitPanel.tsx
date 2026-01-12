@@ -5,13 +5,10 @@ export function ChatKitPanel() {
   const chatkit = useChatKit({
     api: { url: CHATKIT_API_URL, domainKey: CHATKIT_API_DOMAIN_KEY },
     composer: {
-      // File uploads are disabled for the demo backend.
       attachments: { enabled: false },
     },
     startScreen: {
-      greeting: "Hi! I'm Trax, C&BCo's new AI agent in training.
-        If at any point you'd prefer help from a human, just let me know and I'll send your query to our service team. 
-        How can I help you today?",
+      greeting: `Hi! I'm Trax, C&BCo's new AI agent in training. If at any point you'd prefer help from a human, just let me know and I'll send your query to our service team. How can I help you today?`,
       prompts: [
         {
           name: "Order Enquiry",
