@@ -102,6 +102,46 @@ export function ChatKitPanel() {
   });
 
   return (
+    <>
+      <style>{`
+        /* Change placeholder text */
+        [data-chatkit-input] textarea::placeholder,
+        .chatkit-input textarea::placeholder,
+        textarea[placeholder="Message the AI"]::placeholder {
+          color: transparent;
+        }
+        [data-chatkit-input] textarea,
+        .chatkit-input textarea,
+        textarea[placeholder="Message the AI"] {
+          background-image: none;
+        }
+        textarea[placeholder="Message the AI"] {
+          font-size: 0;
+        }
+        textarea[placeholder="Message the AI"]::placeholder {
+          font-size: 16px;
+          content: "Chat to Trax";
+        }
+        
+        /* Make greeting text smaller */
+        [data-chatkit-greeting],
+        .chatkit-greeting,
+        [class*="greeting"],
+        [class*="Greeting"] {
+          font-size: 16px !important;
+          font-weight: 400 !important;
+          line-height: 1.5 !important;
+        }
+        
+        /* Change "Thinking" text - hide original, we'll handle differently */
+        [data-chatkit-thinking],
+        [class*="thinking"],
+        [class*="Thinking"] {
+          font-size: 14px !important;
+        }
+      `}</style>
+      <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100%", backgroundColor: "#f8f7f4" }}>
+    
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100%", backgroundColor: "#f8f7f4" }}>
       {/* Header */}
       <div style={{ 
