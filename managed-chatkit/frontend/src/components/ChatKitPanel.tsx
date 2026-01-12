@@ -152,50 +152,48 @@ export function ChatKitPanel() {
     });
   }, [chatkit.control]);
 
-  return (
+return (
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      height: "100vh",
+      width: "100%",
+      backgroundColor: "var(--background)",
+    }}
+  >
+    {/* Chat Area */}
+    <div style={{ flex: 1, overflow: "hidden" }}>
+      <ChatKit
+        control={chatkit.control}
+        style={{ height: "100%", width: "100%" }}
+      />
+    </div>
+
+    {/* Footer */}
     <div
       style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        width: "100%",
-        backgroundColor: "var(--background)",
+        padding: "8px 16px",
+        textAlign: "center",
+        fontSize: "11px",
+        backgroundColor: "white",
+        borderTop: "1px solid #eee",
       }}
     >
-      <div style={{ flex: 1, overflow: "hidden" }}>
-        <ChatKit
-          control={chatkit.control}
-          style={{ height: "100%", width: "100%" }}
-        />
+      <div
+        style={{
+          marginBottom: "4px",
+          color: "var(--trax-green)",
+          fontSize: "11px",
+        }}
+      >
+        Tip: you can ask for a human any time.
       </div>
 
-      <div
-  style={{
-    padding: "8px 16px",
-    textAlign: "center",
-    fontSize: "11px",
-    backgroundColor: "white",
-    borderTop: "1px solid #eee",
-  }}
->
-  <div
-    style={{
-      marginBottom: "4px",
-      color: "var(--trax-green)",
-      fontSize: "11px",
-    }}
-  >
-    Tip: you can ask for a human any time.
+      <div style={{ color: "#999", fontSize: "11px" }}>
+        Powered by The Curtain & Blind Co
+      </div>
+    </div>
   </div>
-
-  <div
-    style={{
-      color: "#999",
-      fontSize: "11px",
-    }}
-  >
-    Powered by The Curtain & Blind Co
-  </div>
-</div>
-  );
+);
 }
