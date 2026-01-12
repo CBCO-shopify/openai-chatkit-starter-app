@@ -91,15 +91,26 @@ export function ChatKitPanel() {
     if (chatkit.sendUserMessage && !hasTriggered) {
       setHasTriggered(true);
       
-      setTimeout(() => {
-        console.log("Trying array format...");
+      setTimeout(async () => {
+        console.log("Testing multiple formats...");
         
-        // Try array of content parts (like OpenAI message format)
-        try {
-          console.log("Trying: [{ type: 'text', text: 'hi' }]");
-          chatkit.sendUserMessage([{ type: "text", text: "hi" }]);
-        } catch (e) {
-          console.log("Array format error:", e);
+        const formats = [
+          { name: "content array", value: [{ type: "input_text", text: "hi" }] },
+          { name: "content string array", value: [{ content: "hi" }] },
+          { name: "simple string array", value: ["hi"] },
+          { name: "message array", value: [{ message: "hi" }] },
+          { name: "value array", value: [{ value: "hi" }] },
+        ];
+        
+        for (const format of formats) {
+          try {
+            console.log(`Trying ${format.name}:`, JSON.stringify(format.value));
+            await chatkit.sendUserMessage(format.value);
+            console.log(`${format.name} - SUCCESS!`);
+            break;
+          } catch (e) {
+            console.log(`${format.name} - Error:`, e.message || e);
+          }
         }
       }, 1000);
     }
