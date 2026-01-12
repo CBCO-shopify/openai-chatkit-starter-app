@@ -155,3 +155,8 @@ export function ChatKitPanel() {
         </div>
         <div style={{ color: "#999" }}>
           Powered by The Curtain &amp; Blind Company
+        </div>
+      </div>
+    </div>
+  );
+}
