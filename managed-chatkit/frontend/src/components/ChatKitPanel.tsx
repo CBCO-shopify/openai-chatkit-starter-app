@@ -88,19 +88,23 @@ export function ChatKitPanel() {
   });
 
   useEffect(() => {
-    console.log("=== useEffect running ===");
-    console.log("hasTriggered:", hasTriggered);
-    console.log("sendUserMessage exists:", !!chatkit.sendUserMessage);
-    
     if (chatkit.sendUserMessage && !hasTriggered) {
-      console.log("Setting up timer...");
       setHasTriggered(true);
       
       setTimeout(() => {
-        console.log("Timer fired! Attempting to send 'hi'...");
-        chatkit.sendUserMessage("hi");
-        console.log("sendUserMessage completed");
-      }, 500);
+        console.log("Testing different parameter formats...");
+        
+        // Log the function to see what it expects
+        console.log("Function:", chatkit.sendUserMessage.toString().substring(0, 200));
+        
+        // Try object format
+        try {
+          console.log("Trying: { content: 'hi' }");
+          chatkit.sendUserMessage({ content: "hi" });
+        } catch (e) {
+          console.log("Object format error:", e);
+        }
+      }, 1000);
     }
   }, [chatkit.sendUserMessage, hasTriggered]);
 
