@@ -88,13 +88,23 @@ export function ChatKitPanel() {
   });
 
   useEffect(() => {
+    console.log("=== useEffect running ===");
+    console.log("hasTriggered:", hasTriggered);
+    console.log("sendUserMessage exists:", !!chatkit.sendUserMessage);
+    console.log("sendUserMessage type:", typeof chatkit.sendUserMessage);
+    
     if (chatkit.sendUserMessage && !hasTriggered) {
       setHasTriggered(true);
       
       const timer = setTimeout(() => {
-        console.log("Attempting to send message...");
-        chatkit.sendUserMessage("hi");
-      }, 1500);
+        console.log("Attempting to send 'hi'...");
+        try {
+          chatkit.sendUserMessage("hi");
+          console.log("sendUserMessage called successfully");
+        } catch (err) {
+          console.error("sendUserMessage error:", err);
+        }
+      }, 2000);
       
       return () => clearTimeout(timer);
     }
