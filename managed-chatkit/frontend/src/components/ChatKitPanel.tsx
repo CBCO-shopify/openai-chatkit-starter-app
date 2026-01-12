@@ -11,6 +11,12 @@ export function ChatKitPanel() {
   const chatkit = useChatKit({
     api: { getClientSecret },
     header: { enabled: false },
+    composer: {
+      placeholder: "Chat to Trax"
+    },
+    theme: {
+      density: "comfortable"
+    },
     startScreen: {
       greeting: "Hi! I'm Trax, C&BCo's new AI agent in training. If at any point you'd prefer help from a human, just let me know and I'll send your query to our service team. How can I help you today?",
       prompts: [
@@ -100,74 +106,52 @@ export function ChatKitPanel() {
     }
   });
 
-  // Change placeholder text
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const textarea = document.getElementById('chatkit-composer-input') as HTMLTextAreaElement;
-      if (textarea && textarea.placeholder === "Message the AI") {
-        textarea.placeholder = "Chat to Trax";
-        clearInterval(interval);
-      }
-    }, 100);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
-    <>
-<style>{`
-  /* Force greeting text smaller - use multiple selectors */
-  h2 {
-    font-size: 16px !important;
-    font-weight: 400 !important;
-    line-height: 1.5 !important;
-  }
-      `}</style>
-      <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100%", backgroundColor: "#f8f7f4" }}>
-        {/* Header */}
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100%", backgroundColor: "#f8f7f4" }}>
+      {/* Header */}
+      <div style={{ 
+        display: "flex", 
+        alignItems: "center", 
+        gap: "12px", 
+        padding: "12px 16px", 
+        backgroundColor: "#3d6b4f", 
+        color: "white" 
+      }}>
         <div style={{ 
+          width: "40px", 
+          height: "40px", 
+          borderRadius: "50%", 
+          backgroundColor: "rgba(255,255,255,0.2)", 
           display: "flex", 
           alignItems: "center", 
-          gap: "12px", 
-          padding: "12px 16px", 
-          backgroundColor: "#3d6b4f", 
-          color: "white" 
+          justifyContent: "center",
+          fontSize: "18px",
+          fontWeight: "bold"
         }}>
-          <div style={{ 
-            width: "40px", 
-            height: "40px", 
-            borderRadius: "50%", 
-            backgroundColor: "rgba(255,255,255,0.2)", 
-            display: "flex", 
-            alignItems: "center", 
-            justifyContent: "center",
-            fontSize: "18px",
-            fontWeight: "bold"
-          }}>
-            
-          </div>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: "16px" }}>Traxine</div>
-            <div style={{ fontSize: "12px", opacity: 0.8 }}>C&BCo's AI Assistant</div>
-          </div>
+          
         </div>
-        
-        {/* Chat Area */}
-        <div style={{ flex: 1, overflow: "hidden" }}>
-          <ChatKit control={chatkit.control} style={{ height: "100%", width: "100%" }} />
-        </div>
-        
-        {/* Footer */}
-        <div style={{ 
-          padding: "8px 16px", 
-          textAlign: "center", 
-          fontSize: "11px", 
-          color: "#999", 
-          backgroundColor: "white", 
-          borderTop: "1px solid #eee" 
-        }}>
-          Powered by The Curtain & Blind Co
+        <div>
+          <div style={{ fontWeight: 600, fontSize: "16px" }}>Traxine</div>
+          <div style={{ fontSize: "12px", opacity: 0.8 }}>C&BCo's AI Assistant</div>
         </div>
       </div>
-    </>
+      
+      {/* Chat Area */}
+      <div style={{ flex: 1, overflow: "hidden" }}>
+        <ChatKit control={chatkit.control} style={{ height: "100%", width: "100%" }} />
+      </div>
+      
+      {/* Footer */}
+      <div style={{ 
+        padding: "8px 16px", 
+        textAlign: "center", 
+        fontSize: "11px", 
+        color: "#999", 
+        backgroundColor: "white", 
+        borderTop: "1px solid #eee" 
+      }}>
+        Powered by The Curtain & Blind Co
+      </div>
+    </div>
   );
 }
