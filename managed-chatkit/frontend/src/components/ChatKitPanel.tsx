@@ -10,13 +10,8 @@ export function ChatKitPanel() {
 
   const chatkit = useChatKit({
     api: { getClientSecret },
-
-    // We render our own header above ChatKit
     header: { enabled: false },
-
     composer: { placeholder: "Chat to Trax" },
-
-    // Hide thumbs + retry
     threadItemActions: {
       feedback: false,
       retry: false,
@@ -90,7 +85,6 @@ export function ChatKitPanel() {
     },
   });
 
-  // Auto-trigger the Welcome agent on load
   useEffect(() => {
     if (chatkit.control) {
       chatkit.control.sendMessage("");
@@ -107,7 +101,6 @@ export function ChatKitPanel() {
         backgroundColor: "var(--background)",
       }}
     >
-      {/* Top Header */}
       <div
         style={{
           padding: "12px 16px",
@@ -124,7 +117,6 @@ export function ChatKitPanel() {
         </div>
       </div>
 
-      {/* Chat Area */}
       <div style={{ flex: 1, overflow: "hidden" }}>
         <ChatKit
           control={chatkit.control}
@@ -132,7 +124,6 @@ export function ChatKitPanel() {
         />
       </div>
 
-      {/* Footer */}
       <div
         style={{
           padding: "8px 16px",
@@ -152,16 +143,3 @@ export function ChatKitPanel() {
     </div>
   );
 }
-```
-
-**Key changes:**
-1. Added `useEffect` import at the top
-2. Added the `useEffect` hook that sends an empty message (`""`) when the chat control is ready
-
-This will trigger your Welcome agent automatically on load. The Welcome agent should then pass through to My agent, and the "Trax Welcome" widget will display whatever buttons/UI you've configured.
-
----
-
-**In your Welcome agent instructions**, you can set it to simply output nothing or a minimal trigger. Try this for the Welcome instructions:
-```
-Output nothing. Simply pass through to the next agent.
