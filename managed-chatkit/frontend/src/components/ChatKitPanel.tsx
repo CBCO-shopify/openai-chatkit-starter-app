@@ -94,36 +94,14 @@ export function ChatKitPanel() {
       setTimeout(async () => {
         const element = chatkit.ref.current;
         
-        console.log("=== Setting composer then submitting ===");
-        
-        // Set composer value
-        console.log("Step 1: Setting composer value...");
-        await element.setComposerValue("hi");
-        console.log("Composer value set");
-        
-        // Wait for iframe to sync
-        console.log("Step 2: Waiting for sync...");
-        await new Promise(r => setTimeout(r, 1000));
-        
-        // Try sending WITHOUT parameter (read from composer)
-        console.log("Step 3: Trying sendUserMessage() with no param...");
-        try {
-          await element.sendUserMessage();
-          console.log("sendUserMessage() succeeded");
-        } catch (e) {
-          console.log("sendUserMessage() error:", e.message);
-        }
-        
-        // Also try focusComposer then send
-        console.log("Step 4: Focus composer then send...");
-        await element.focusComposer();
-        await new Promise(r => setTimeout(r, 500));
+        console.log("=== Trying { text: 'hi' } format ===");
         
         try {
-          await element.sendUserMessage();
-          console.log("After focus - sendUserMessage() succeeded");
+          console.log("Sending: { text: 'hi' }");
+          await element.sendUserMessage({ text: "hi" });
+          console.log("SUCCESS!");
         } catch (e) {
-          console.log("After focus - sendUserMessage() error:", e.message);
+          console.log("Error:", e.message);
         }
         
       }, 2000);
@@ -177,8 +155,3 @@ export function ChatKitPanel() {
         </div>
         <div style={{ color: "#999" }}>
           Powered by The Curtain &amp; Blind Company
-        </div>
-      </div>
-    </div>
-  );
-}
