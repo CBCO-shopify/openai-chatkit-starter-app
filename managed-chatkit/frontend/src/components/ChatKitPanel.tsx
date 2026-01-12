@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
 
@@ -15,6 +15,9 @@ export function ChatKitPanel() {
     header: { enabled: false },
     composer: {
       placeholder: "Chat to Trax"
+    },
+    features: {
+      feedback: false
     },
     startScreen: {
       greeting: "",
@@ -105,9 +108,22 @@ export function ChatKitPanel() {
     }
   });
 
-  const handleStart = () => {
-    setHasStarted(true);
-  };
+  // Hide welcome on any click in the document
+  useEffect(() => {
+    const handleClick = () => {
+      setHasStarted(true);
+    };
+    
+    // Small delay to avoid hiding immediately on page load
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleClick, { once: true });
+    }, 500);
+    
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', handleClick);
+    };
+  }, []);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100%", backgroundColor: "#f8f7f4" }}>
@@ -141,14 +157,10 @@ export function ChatKitPanel() {
       
       {/* Custom Welcome Message - only shows before chat starts */}
       {!hasStarted && (
-        <div 
-          onClick={handleStart}
-          style={{
-            padding: "24px 20px 0 20px",
-            textAlign: "center",
-            cursor: "pointer"
-          }}
-        >
+        <div style={{
+          padding: "24px 20px 0 20px",
+          textAlign: "center"
+        }}>
           <h2 style={{
             fontSize: "20px",
             fontWeight: "600",
@@ -169,28 +181,12 @@ export function ChatKitPanel() {
         </div>
       )}
       
-      {/* Chat Area with click overlay when not started */}
-      <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+      {/* Chat Area - no overlay needed */}
+      <div style={{ flex: 1, overflow: "hidden" }}>
         <ChatKit 
           control={chatkit.control} 
           style={{ height: "100%", width: "100%" }}
-          messageActions={false}
         />
-        
-        {/* Invisible overlay to capture first click */}
-        {!hasStarted && (
-          <div 
-            onClick={handleStart}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              cursor: "pointer"
-            }}
-          />
-        )}
       </div>
       
       {/* Footer */}
