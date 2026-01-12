@@ -87,31 +87,41 @@ export function ChatKitPanel() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      console.log("=== DEBUG: Looking for ChatKit elements ===");
+      console.log("=== DEBUG: Deep scan for ChatKit elements ===");
       
-      const allTextareas = document.querySelectorAll('textarea');
-      console.log("All textareas found:", allTextareas.length);
-      allTextareas.forEach((ta, i) => {
-        console.log(`Textarea ${i}:`, ta.placeholder, ta);
+      const iframes = document.querySelectorAll('iframe');
+      console.log("Iframes found:", iframes.length);
+      iframes.forEach((iframe, i) => {
+        console.log(`Iframe ${i}:`, iframe.src, iframe);
       });
 
-      const allInputs = document.querySelectorAll('input');
-      console.log("All inputs found:", allInputs.length);
-      allInputs.forEach((inp, i) => {
-        console.log(`Input ${i}:`, inp.placeholder, inp.type, inp);
+      const contentEditables = document.querySelectorAll('[contenteditable="true"]');
+      console.log("Contenteditable elements:", contentEditables.length);
+      contentEditables.forEach((el, i) => {
+        console.log(`Contenteditable ${i}:`, el);
       });
 
-      const allForms = document.querySelectorAll('form');
-      console.log("All forms found:", allForms.length);
-
-      const allButtons = document.querySelectorAll('button');
-      console.log("All buttons found:", allButtons.length);
-      allButtons.forEach((btn, i) => {
-        console.log(`Button ${i}:`, btn.type, btn.textContent, btn);
+      const shadowHosts = document.querySelectorAll('*');
+      let shadowCount = 0;
+      shadowHosts.forEach((el) => {
+        if (el.shadowRoot) {
+          shadowCount++;
+          console.log("Shadow DOM host found:", el);
+          console.log("Shadow content:", el.shadowRoot.innerHTML.substring(0, 500));
+        }
       });
+      console.log("Total shadow DOMs:", shadowCount);
 
+      const divWithRole = document.querySelectorAll('[role="textbox"]');
+      console.log("Div textboxes (role=textbox):", divWithRole.length);
+
+      const chatKitContainer = document.querySelector('[class*="chatkit"], [class*="ChatKit"], [data-chatkit]');
+      console.log("ChatKit container:", chatKitContainer);
+
+      console.log("Full body HTML preview:", document.body.innerHTML.substring(0, 2000));
+      
       console.log("=== END DEBUG ===");
-    }, 1000);
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, []);
