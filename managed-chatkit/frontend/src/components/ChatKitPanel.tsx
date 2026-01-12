@@ -19,17 +19,6 @@ export function ChatKitPanel() {
       retry: false,
     },
 
-    onLoad: () => {
-      console.log("ChatKit onLoad fired");
-      if (!hasTriggered) {
-        setHasTriggered(true);
-      }
-    },
-
-    onReady: () => {
-      console.log("ChatKit onReady fired");
-    },
-
     onClientTool: async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall);
 
@@ -99,14 +88,11 @@ export function ChatKitPanel() {
   });
 
   useEffect(() => {
-    if (chatkit.control) {
-      console.log("=== ChatKit Control Debug ===");
-      console.log("Control:", chatkit.control);
-      console.log("Control keys:", Object.keys(chatkit.control));
-      console.log("Chatkit object keys:", Object.keys(chatkit));
-      console.log("Full chatkit:", chatkit);
+    if (chatkit.sendUserMessage && !hasTriggered) {
+      setHasTriggered(true);
+      chatkit.sendUserMessage("");
     }
-  }, [chatkit.control]);
+  }, [chatkit.sendUserMessage, hasTriggered]);
 
   return (
     <div
