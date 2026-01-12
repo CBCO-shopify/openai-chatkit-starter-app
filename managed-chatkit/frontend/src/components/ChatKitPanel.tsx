@@ -14,9 +14,6 @@ export function ChatKitPanel() {
     composer: {
       placeholder: "Chat to Trax"
     },
-    theme: {
-      density: "comfortable"
-    },
     startScreen: {
       greeting: "Hi! I'm Trax, C&BCo's new AI agent in training. If at any point you'd prefer help from a human, just let me know and I'll send your query to our service team. How can I help you today?",
       prompts: [
