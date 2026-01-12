@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
 
@@ -11,47 +11,19 @@ export function ChatKitPanel() {
   const chatkit = useChatKit({
     api: { getClientSecret },
 
-    // Keep ChatKit's own start screen (we'll use it for the welcome message)
     header: { enabled: false },
 
     composer: {
       placeholder: "Chat to Trax",
     },
 
-    // ✅ Hide thumbs + retry
     threadItemActions: {
       feedback: false,
       retry: false,
     },
 
-    // ✅ Option 1: ChatKit Start Screen greeting (heading + body copy)
-    startScreen: {
-      greeting: `Hi there 👋
-
-I'm Trax, C&BCo's new AI agent in training. If at any point you'd prefer help from a human, just let me know and I'll send your query to our service team. How can I help you today?`,
-      prompts: [
-        {
-          label: "Order Enquiry",
-          prompt: "I'd like to check on an existing order",
-          icon: "lucide:package",
-        },
-        {
-          label: "Product Help",
-          prompt: "I need help choosing the right product for my space",
-          icon: "search",
-        },
-        {
-          label: "Measure & Install",
-          prompt: "I need guidance on measuring or installing my order",
-          icon: "info",
-        },
-        {
-          label: "Other",
-          prompt: "I have a different question",
-          icon: "circle-question",
-        },
-      ],
-    },
+    // ✅ Remove ChatKit start screen so your widget is the welcome
+    startScreen: { enabled: false },
 
     onClientTool: async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall);
@@ -62,9 +34,7 @@ I'm Trax, C&BCo's new AI agent in training. If at any point you'd prefer help fr
             "https://n8n.curtainworld.net.au/webhook/gorgias-escalation",
             {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 customer_email: toolCall.params.customer_email,
                 customer_phone: toolCall.params.customer_phone || "",
@@ -75,9 +45,7 @@ I'm Trax, C&BCo's new AI agent in training. If at any point you'd prefer help fr
             }
           );
 
-          if (!response.ok) {
-            throw new Error("Failed to create ticket");
-          }
+          if (!response.ok) throw new Error("Failed to create ticket");
 
           return {
             success: true,
@@ -100,9 +68,7 @@ I'm Trax, C&BCo's new AI agent in training. If at any point you'd prefer help fr
             "https://n8n.curtainworld.net.au/webhook/order-lookup",
             {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 order_number: toolCall.params.order_number,
                 email: toolCall.params.email,
@@ -110,9 +76,7 @@ I'm Trax, C&BCo's new AI agent in training. If at any point you'd prefer help fr
             }
           );
 
-          if (!response.ok) {
-            throw new Error("Failed to lookup order");
-          }
+          if (!response.ok) throw new Error("Failed to lookup order");
 
           const data = await response.json();
           return data;
@@ -130,6 +94,64 @@ I'm Trax, C&BCo's new AI agent in training. If at any point you'd prefer help fr
     },
   });
 
+  // ✅ Inject the welcome widget ONCE per session load
+  const didInjectWelcome = useRef(false);
+
+  useEffect(() => {
+    if (didInjectWelcome.current) return;
+
+    // If there are already messages, don't inject again
+    const items = chatkit.control?.thread?.items ?? [];
+    if (items.length > 0) {
+      didInjectWelcome.current = true;
+      return;
+    }
+
+    didInjectWelcome.current = true;
+
+    // ⚠️ Replace "trax-welcome-actions" with your widget's actual ID/name
+    chatkit.control.thread.append({
+      role: "assistant",
+      content: [
+        {
+          type: "widget",
+          name: "trax-welcome-actions",
+          state: {
+            title: "Hi! I’m Trax 👋",
+            message:
+              "I’m C&BCo’s new AI agent in training. If you’d prefer help from a human at any point, tell me and I’ll send your query to our service team. How can I help today?",
+            options: [
+              {
+                id: "order",
+                label: "Order enquiry",
+                prompt: "I'd like to check on an existing order",
+                icon: "suitcase",
+              },
+              {
+                id: "product",
+                label: "Product help",
+                prompt: "I need help choosing the right product for my space",
+                icon: "search",
+              },
+              {
+                id: "install",
+                label: "Measure & install",
+                prompt: "I need guidance on measuring or installing my order",
+                icon: "info",
+              },
+              {
+                id: "other",
+                label: "Other",
+                prompt: "I have a different question",
+                icon: "circle-question",
+              },
+            ],
+          },
+        },
+      ],
+    });
+  }, [chatkit.control]);
+
   return (
     <div
       style={{
@@ -137,15 +159,16 @@ I'm Trax, C&BCo's new AI agent in training. If at any point you'd prefer help fr
         flexDirection: "column",
         height: "100vh",
         width: "100%",
-        backgroundColor: "#f8f7f4",
+        backgroundColor: "var(--background)",
       }}
     >
-      {/* Chat Area */}
       <div style={{ flex: 1, overflow: "hidden" }}>
-        <ChatKit control={chatkit.control} style={{ height: "100%", width: "100%" }} />
+        <ChatKit
+          control={chatkit.control}
+          style={{ height: "100%", width: "100%" }}
+        />
       </div>
 
-      {/* Footer */}
       <div
         style={{
           padding: "8px 16px",
