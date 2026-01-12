@@ -16,7 +16,7 @@ export function ChatKitPanel() {
         {
           label: "Order Enquiry",
           prompt: "I'd like to check on an existing order",
-          icon: "package"
+          icon: "lucide:package"
         },
         {
           label: "Product Help",
@@ -31,7 +31,7 @@ export function ChatKitPanel() {
         {
           label: "Other",
           prompt: "I have a different question",
-          icon: "help-circle"
+          icon: "circle-question"
         }
       ]
     },
