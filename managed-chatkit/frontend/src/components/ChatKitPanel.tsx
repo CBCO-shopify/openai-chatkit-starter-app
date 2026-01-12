@@ -36,7 +36,7 @@ export function ChatKitPanel() {
         }
       ]
     },
-      onClientToolCall: async (toolCall) => {
+      onClientTool async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall.arguments);
       
       if (toolCall.name === "create_gorgias_ticket") {
