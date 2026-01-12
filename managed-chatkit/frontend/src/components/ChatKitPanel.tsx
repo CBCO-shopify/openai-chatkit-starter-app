@@ -171,7 +171,11 @@ export function ChatKitPanel() {
       
       {/* Chat Area with click overlay when not started */}
       <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
-        <ChatKit control={chatkit.control} style={{ height: "100%", width: "100%" }} />
+        <ChatKit 
+          control={chatkit.control} 
+          style={{ height: "100%", width: "100%" }}
+          messageActions={false}
+        />
         
         {/* Invisible overlay to capture first click */}
         {!hasStarted && (
