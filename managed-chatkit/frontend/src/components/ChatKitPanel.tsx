@@ -170,14 +170,13 @@ export function ChatKitPanel() {
       </div>
 
       <div
-        style={{
-          padding: "8px 16px",
-          textAlign: "center",
-          fontSize: "11px",
-          color: "#999",
-          backgroundColor: "white",
-          borderTop: "1px solid #eee",
-        }}
+  style={{
+    padding: "8px 16px",
+    textAlign: "center",
+    fontSize: "11px",
+    backgroundColor: "white",
+    borderTop: "1px solid #eee",
+  }}
 >
   <div
     style={{
@@ -186,7 +185,7 @@ export function ChatKitPanel() {
       fontSize: "11px",
     }}
   >
-    Tip: you send this chat to a human anytime.
+    Tip: you can ask for a human any time.
   </div>
 
   <div
