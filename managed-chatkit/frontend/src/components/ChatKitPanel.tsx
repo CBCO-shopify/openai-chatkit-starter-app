@@ -86,12 +86,28 @@ export function ChatKitPanel() {
   });
 
   useEffect(() => {
-    if (chatkit.control) {
-      console.log("ChatKit control object:", chatkit.control);
-      console.log("Available methods:", Object.keys(chatkit.control));
-      console.log("Full control:", JSON.stringify(chatkit.control, null, 2));
-    }
-  }, [chatkit.control]);
+    const timer = setTimeout(() => {
+      const textarea = document.querySelector('textarea[placeholder="Chat to Trax"]');
+      const form = textarea?.closest('form');
+      
+      if (textarea && form) {
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+        if (nativeInputValueSetter) {
+          nativeInputValueSetter.call(textarea, 'hi');
+          textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        
+        setTimeout(() => {
+          const submitButton = form.querySelector('button[type="submit"]');
+          if (submitButton) {
+            (submitButton as HTMLButtonElement).click();
+          }
+        }, 100);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div
