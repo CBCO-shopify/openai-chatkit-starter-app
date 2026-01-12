@@ -47,11 +47,11 @@ export function ChatKitPanel() {
               "Content-Type": "application/json"
             },
             body: JSON.stringify({
-              customer_email: toolCall.customer_email,
-              customer_phone: toolCall.customer_phone || "",
-              subject: toolCall.subject,
-              summary: toolCall.summary,
-              conversation_transcript: toolCall.conversation_transcript
+              customer_email: toolCall.params.customer_email,
+              customer_phone: toolCall.params.customer_phone || "",
+              subject: toolCall.params.subject,
+              summary: toolCall.params.summary,
+              conversation_transcript: toolCall.params.conversation_transcript
             })
           });
           if (!response.ok) {
@@ -80,7 +80,6 @@ export function ChatKitPanel() {
             body: JSON.stringify({
               order_number: toolCall.params.order_number,
               email: toolCall.params.email
-            })
             })
           });
           if (!response.ok) {
