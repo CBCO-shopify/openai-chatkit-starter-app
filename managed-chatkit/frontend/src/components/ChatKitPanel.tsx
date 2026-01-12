@@ -16,9 +16,6 @@ export function ChatKitPanel() {
     composer: {
       placeholder: "Chat to Trax"
     },
-    features: {
-      feedback: false
-    },
     startScreen: {
       greeting: "",
       prompts: [
@@ -114,7 +111,6 @@ export function ChatKitPanel() {
       setHasStarted(true);
     };
     
-    // Small delay to avoid hiding immediately on page load
     const timer = setTimeout(() => {
       document.addEventListener('click', handleClick, { once: true });
     }, 500);
@@ -181,7 +177,7 @@ export function ChatKitPanel() {
         </div>
       )}
       
-      {/* Chat Area - no overlay needed */}
+      {/* Chat Area */}
       <div style={{ flex: 1, overflow: "hidden" }}>
         <ChatKit 
           control={chatkit.control} 
