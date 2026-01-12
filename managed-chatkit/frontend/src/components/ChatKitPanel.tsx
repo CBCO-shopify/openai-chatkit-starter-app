@@ -26,12 +26,12 @@ export function ChatKitPanel() {
         {
           label: "Measure & Install",
           prompt: "I need guidance on measuring or installing my order",
-          icon: "clipboard"
+          icon: "info"
         },
         {
           label: "Other",
           prompt: "I have a different question",
-          icon: "chat"
+          icon: "help-circle"
         }
       ]
     },
