@@ -23,7 +23,6 @@ export function ChatKitPanel() {
     },
 
     // ✅ Remove ChatKit start screen so your widget is the welcome
-    startScreen: { enabled: false },
 
     onClientTool: async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall);
