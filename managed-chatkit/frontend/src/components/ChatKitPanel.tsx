@@ -103,6 +103,37 @@ export function ChatKitPanel() {
     }
   });
 
+  // Change placeholder text (backup method)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const textarea = document.getElementById('chatkit-composer-input') as HTMLTextAreaElement;
+      if (textarea && textarea.placeholder === "Message the AI") {
+        textarea.placeholder = "Chat to Trax";
+        clearInterval(interval);
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Style the greeting h2 to look like regular text
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const container = document.getElementById('chatkit-container');
+      if (container) {
+        const h2 = container.querySelector('h2');
+        if (h2) {
+          h2.style.fontSize = '16px';
+          h2.style.fontWeight = '400';
+          h2.style.lineHeight = '1.5';
+        }
+      }
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100%", backgroundColor: "#f8f7f4" }}>
       {/* Header */}
