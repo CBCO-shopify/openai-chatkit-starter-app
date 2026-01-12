@@ -1,22 +1,27 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
 
-function getThreadKey(control: any) {
-  return (
-    control?.thread?.id ||
-    control?.threadId ||
-    control?.sessionId ||
-    control?.conversationId ||
-    "default"
-  );
-}
+type WelcomeOption = {
+  id: string;
+  label: string;
+  prompt: string;
+};
+
+const WELCOME_OPTIONS: WelcomeOption[] = [
+  { id: "order", label: "Order enquiry", prompt: "I'd like to check on an existing order" },
+  { id: "product", label: "Product help", prompt: "I need help choosing the right product for my space" },
+  { id: "install", label: "Measure & install", prompt: "I need guidance on measuring or installing my order" },
+  { id: "other", label: "Other", prompt: "I have a different question" },
+];
+
+// Only show once per “new session” in this browser.
+// If you want it to re-appear for a truly new server-side session, we can key this differently later.
+const storageKey = `trax_welcome_overlay_shown:${workflowId}`;
 
 export function ChatKitPanel() {
-  const getClientSecret = useMemo(
-    () => createClientSecretFetcher(workflowId),
-    []
-  );
+  const getClientSecret = useMemo(() => createClientSecretFetcher(workflowId), []);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   const chatkit = useChatKit({
     api: { getClientSecret },
@@ -24,16 +29,11 @@ export function ChatKitPanel() {
     // We render our own header above ChatKit
     header: { enabled: false },
 
-    composer: {
-      placeholder: "Chat to Trax",
-    },
+    composer: { placeholder: "Chat to Trax" },
 
-    threadItemActions: {
-      feedback: false,
-      retry: false,
-    },
+    threadItemActions: { feedback: false, retry: false },
 
-    // IMPORTANT: Your ChatKit build rejects startScreen.enabled, so we omit startScreen entirely.
+    // IMPORTANT: do not set startScreen.enabled (your build rejects it)
 
     onClientTool: async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall);
@@ -104,108 +104,78 @@ export function ChatKitPanel() {
     },
   });
 
-  // Inject welcome widget once per new session
-  const didInjectWelcome = useRef(false);
-
+  // Decide if we should show the welcome overlay:
+  // - only if user hasn't started (thread is empty)
+  // - only if we haven't shown it already for this “session” in this browser
+  const didInit = useRef(false);
   useEffect(() => {
-    if (didInjectWelcome.current) return;
+    if (didInit.current) return;
+    didInit.current = true;
 
+    const alreadyShown = localStorage.getItem(storageKey) === "1";
+    if (alreadyShown) {
+      setShowWelcome(false);
+      return;
+    }
+
+    // If there are already thread items, it's not a new session
+    const control: any = chatkit.control;
+    const items = control?.thread?.items ?? control?.threadItems ?? [];
+    if (Array.isArray(items) && items.length > 0) {
+      setShowWelcome(false);
+      return;
+    }
+
+    setShowWelcome(true);
+  }, [chatkit.control]);
+
+  // Hide overlay as soon as the user starts chatting (thread gets items)
+  useEffect(() => {
+    if (!showWelcome) return;
+
+    const interval = window.setInterval(() => {
+      const control: any = chatkit.control;
+      const items = control?.thread?.items ?? control?.threadItems ?? [];
+
+      if (Array.isArray(items) && items.length > 0) {
+        localStorage.setItem(storageKey, "1");
+        setShowWelcome(false);
+      }
+    }, 200);
+
+    return () => window.clearInterval(interval);
+  }, [showWelcome, chatkit.control]);
+
+  // Send text via whatever API your ChatKit build exposes
+  const sendText = async (text: string) => {
     const control: any = chatkit.control;
     if (!control) return;
 
-    const tryInject = () => {
-      const ctrl: any = chatkit.control;
-      if (!ctrl) return false;
-
-      const thread = ctrl.thread;
-
-      // If thread already has messages, don't inject (not a new session)
-      const items = thread?.items ?? ctrl?.threadItems ?? [];
-      if (Array.isArray(items) && items.length > 0) {
-        didInjectWelcome.current = true;
-        return true;
+    // Try common ChatKit methods
+    if (typeof control.sendMessage === "function") {
+      await control.sendMessage({ text });
+    } else if (typeof control.send === "function") {
+      await control.send({ text });
+    } else if (typeof control.submitMessage === "function") {
+      await control.submitMessage({ text });
+    } else if (control.composer && typeof control.composer.setText === "function") {
+      control.composer.setText(text);
+      if (typeof control.composer.submit === "function") {
+        await control.composer.submit();
       }
-
-      // Find an append-like API (varies by build)
-      const appendFn =
-        (typeof thread?.append === "function" && ((x: any) => thread.append(x))) ||
-        (typeof ctrl?.addThreadItem === "function" && ((x: any) => ctrl.addThreadItem(x))) ||
-        (typeof ctrl?.appendThreadItem === "function" && ((x: any) => ctrl.appendThreadItem(x))) ||
-        (typeof ctrl?.pushThreadItem === "function" && ((x: any) => ctrl.pushThreadItem(x))) ||
-        null;
-
-      // Not ready yet — keep waiting
-      if (!appendFn) return false;
-
-      // LocalStorage guard so refreshes don’t re-add it to an empty thread
-      const threadKey = String(getThreadKey(ctrl));
-      const storageKey = `trax_welcome_shown:${workflowId}:${threadKey}`;
-      if (localStorage.getItem(storageKey) === "1") {
-        didInjectWelcome.current = true;
-        return true;
+    } else {
+      // If none exist, at least put it in the composer so the user can press send
+      if (control.composer && typeof control.composer.setText === "function") {
+        control.composer.setText(text);
+      } else {
+        console.warn("No known send API available on chatkit.control");
       }
+    }
 
-      localStorage.setItem(storageKey, "1");
-      didInjectWelcome.current = true;
-
-      appendFn({
-        role: "assistant",
-        content: [
-          {
-            type: "widget",
-            name: "Trax Welcome",
-            state: {
-              title: "Hi! I’m Trax 👋",
-              message:
-                "I’m C&BCo’s new AI agent in training. If you’d prefer help from a human at any point, tell me and I’ll send your query to our service team. How can I help today?",
-              options: [
-                {
-                  id: "order",
-                  label: "Order enquiry",
-                  prompt: "I'd like to check on an existing order",
-                  icon: "suitcase",
-                },
-                {
-                  id: "product",
-                  label: "Product help",
-                  prompt: "I need help choosing the right product for my space",
-                  icon: "search",
-                },
-                {
-                  id: "install",
-                  label: "Measure & install",
-                  prompt: "I need guidance on measuring or installing my order",
-                  icon: "info",
-                },
-                {
-                  id: "other",
-                  label: "Other",
-                  prompt: "I have a different question",
-                  icon: "circle-question",
-                },
-              ],
-            },
-          },
-        ],
-      });
-
-      return true;
-    };
-
-    // ✅ Poll briefly until ChatKit has the append API ready (so the widget appears immediately)
-    // This avoids the “not ready on first render” problem.
-    const start = Date.now();
-    const interval = window.setInterval(() => {
-      const done = tryInject();
-      const timedOut = Date.now() - start > 5000; // 5s safety timeout
-      if (done || timedOut) window.clearInterval(interval);
-    }, 100);
-
-    // Try immediately too (best effort)
-    tryInject();
-
-    return () => window.clearInterval(interval);
-  }, [chatkit.control]);
+    // After user initiates, hide + persist
+    localStorage.setItem(storageKey, "1");
+    setShowWelcome(false);
+  };
 
   return (
     <div
@@ -217,7 +187,7 @@ export function ChatKitPanel() {
         backgroundColor: "var(--background)",
       }}
     >
-      {/* Top Header (restored + correct background) */}
+      {/* Top Header */}
       <div
         style={{
           padding: "12px 16px",
@@ -235,14 +205,87 @@ export function ChatKitPanel() {
       </div>
 
       {/* Chat Area */}
-      <div style={{ flex: 1, overflow: "hidden" }}>
-        <ChatKit
-          control={chatkit.control}
-          style={{ height: "100%", width: "100%" }}
-        />
+      <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+        <ChatKit control={chatkit.control} style={{ height: "100%", width: "100%" }} />
+
+        {/* Welcome overlay that looks “in-chat” */}
+        {showWelcome && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "center",
+              padding: "16px",
+              pointerEvents: "none", // allow scroll behind, but we re-enable on the card
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "560px",
+                background: "transparent",
+                pointerEvents: "auto",
+              }}
+            >
+              <div
+                style={{
+                  background: "transparent",
+                  padding: "0px",
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: "18px", marginBottom: "6px" }}>
+                  Hi! I’m Trax 👋
+                </div>
+                <div style={{ opacity: 0.85, marginBottom: "12px", lineHeight: 1.4 }}>
+                  I’m C&amp;BCo’s new AI agent in training. If you’d prefer help from a human at
+                  any point, tell me and I’ll send your query to our service team. How can I help
+                  today?
+                </div>
+
+                <div style={{ display: "grid", gap: "10px" }}>
+                  {WELCOME_OPTIONS.map((o) => (
+                    <button
+                      key={o.id}
+                      type="button"
+                      onClick={() => sendText(o.prompt)}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "12px 14px",
+                        background: "var(--trax-paper)",
+                        color: "var(--trax-green)",
+                        border: "1px solid var(--trax-green)",
+                        borderRadius: "var(--trax-radius)",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLButtonElement).style.background = "var(--trax-green)";
+                        (e.currentTarget as HTMLButtonElement).style.color = "var(--trax-paper)";
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLButtonElement).style.background = "var(--trax-paper)";
+                        (e.currentTarget as HTMLButtonElement).style.color = "var(--trax-green)";
+                      }}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ marginTop: "10px", fontSize: "12px", opacity: 0.8 }}>
+                  Tip: you can ask for a human any time.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Footer (always visible tip + brand) */}
+      {/* Footer */}
       <div
         style={{
           padding: "8px 16px",
@@ -255,9 +298,7 @@ export function ChatKitPanel() {
         <div style={{ marginBottom: "4px", color: "var(--trax-green)" }}>
           Tip: you can ask for a human any time.
         </div>
-        <div style={{ color: "#999" }}>
-          Powered by The Curtain &amp; Blind Co
-        </div>
+        <div style={{ color: "#999" }}>Powered by The Curtain &amp; Blind Co</div>
       </div>
     </div>
   );
