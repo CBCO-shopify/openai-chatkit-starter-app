@@ -36,6 +36,13 @@ export function ChatKitPanel() {
         }
       ]
     },
+      input: {
+      placeholder: "Chat to Trax"
+      },
+      messages: {
+      thinking: "Stitching..."
+      },
+    
       onClientTool: async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall);
       
