@@ -94,30 +94,39 @@ export function ChatKitPanel() {
       setTimeout(async () => {
         const element = chatkit.ref.current;
         
-        console.log("=== Trying direct element method ===");
+        console.log("=== Setting composer then submitting ===");
         
-        // First set the composer value
+        // Set composer value
+        console.log("Step 1: Setting composer value...");
+        await element.setComposerValue("hi");
+        console.log("Composer value set");
+        
+        // Wait for iframe to sync
+        console.log("Step 2: Waiting for sync...");
+        await new Promise(r => setTimeout(r, 1000));
+        
+        // Try sending WITHOUT parameter (read from composer)
+        console.log("Step 3: Trying sendUserMessage() with no param...");
         try {
-          console.log("Setting composer value via element...");
-          element.setComposerValue("hi");
-          console.log("setComposerValue done");
+          await element.sendUserMessage();
+          console.log("sendUserMessage() succeeded");
         } catch (e) {
-          console.log("setComposerValue error:", e);
+          console.log("sendUserMessage() error:", e.message);
         }
         
-        // Wait a bit then try sending
+        // Also try focusComposer then send
+        console.log("Step 4: Focus composer then send...");
+        await element.focusComposer();
         await new Promise(r => setTimeout(r, 500));
         
-        // Try sendUserMessage directly on element
         try {
-          console.log("Trying element.sendUserMessage('hi')...");
-          element.sendUserMessage("hi");
-          console.log("sendUserMessage done");
+          await element.sendUserMessage();
+          console.log("After focus - sendUserMessage() succeeded");
         } catch (e) {
-          console.log("sendUserMessage error:", e);
+          console.log("After focus - sendUserMessage() error:", e.message);
         }
         
-      }, 1500);
+      }, 2000);
     }
   }, [chatkit.ref, hasTriggered]);
 
