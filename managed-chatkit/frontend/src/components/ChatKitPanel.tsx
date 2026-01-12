@@ -88,33 +88,40 @@ export function ChatKitPanel() {
   });
 
   useEffect(() => {
-    if (chatkit.sendUserMessage && !hasTriggered) {
+    if (chatkit.setComposerValue && !hasTriggered) {
       setHasTriggered(true);
       
       setTimeout(async () => {
-        console.log("Testing multiple formats...");
+        console.log("=== Testing alternative methods ===");
         
-        const formats = [
-          { name: "content array", value: [{ type: "input_text", text: "hi" }] },
-          { name: "content string array", value: [{ content: "hi" }] },
-          { name: "simple string array", value: ["hi"] },
-          { name: "message array", value: [{ message: "hi" }] },
-          { name: "value array", value: [{ value: "hi" }] },
-        ];
-        
-        for (const format of formats) {
-          try {
-            console.log(`Trying ${format.name}:`, JSON.stringify(format.value));
-            await chatkit.sendUserMessage(format.value);
-            console.log(`${format.name} - SUCCESS!`);
-            break;
-          } catch (e) {
-            console.log(`${format.name} - Error:`, e.message || e);
-          }
+        // Try setComposerValue
+        try {
+          console.log("Trying setComposerValue('hi')...");
+          await chatkit.setComposerValue("hi");
+          console.log("setComposerValue succeeded");
+        } catch (e) {
+          console.log("setComposerValue error:", e);
         }
-      }, 1000);
+
+        // Try sendCustomAction
+        try {
+          console.log("Trying sendCustomAction...");
+          await chatkit.sendCustomAction({ type: "message", content: "hi" });
+          console.log("sendCustomAction succeeded");
+        } catch (e) {
+          console.log("sendCustomAction error:", e);
+        }
+
+        // Check the ref
+        console.log("ChatKit ref:", chatkit.ref);
+        if (chatkit.ref?.current) {
+          console.log("Ref current:", chatkit.ref.current);
+          console.log("Ref methods:", Object.keys(chatkit.ref.current));
+        }
+        
+      }, 1500);
     }
-  }, [chatkit.sendUserMessage, hasTriggered]);
+  }, [chatkit.setComposerValue, hasTriggered]);
 
   return (
     <div
