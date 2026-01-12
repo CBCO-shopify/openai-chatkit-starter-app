@@ -95,41 +95,37 @@ export function ChatKitPanel() {
         const element = chatkit.ref.current;
         
         console.log("=== Exploring ChatKit element ===");
-        console.log("Element:", element);
         
         // Get all properties including non-enumerable
         const allProps = Object.getOwnPropertyNames(element);
-        console.log("All properties:", allProps);
+        console.log("All properties:", allProps.join(", "));
         
         // Check prototype chain
         const proto = Object.getPrototypeOf(element);
-        console.log("Prototype methods:", Object.getOwnPropertyNames(proto));
+        const protoMethods = Object.getOwnPropertyNames(proto);
+        console.log("Prototype methods:", protoMethods.join(", "));
         
-        // Look for send/submit methods
-        for (const prop of [...allProps, ...Object.getOwnPropertyNames(proto)]) {
-          if (prop.toLowerCase().includes('send') || 
-              prop.toLowerCase().includes('submit') || 
-              prop.toLowerCase().includes('message')) {
-            console.log(`Found relevant method: ${prop}`, typeof element[prop]);
+        // Go deeper in prototype chain
+        const proto2 = Object.getPrototypeOf(proto);
+        if (proto2) {
+          const proto2Methods = Object.getOwnPropertyNames(proto2);
+          console.log("Prototype level 2:", proto2Methods.join(", "));
+        }
+        
+        // Check for shadowRoot content
+        if (element.shadowRoot) {
+          console.log("Shadow root found");
+          const iframe = element.shadowRoot.querySelector('iframe');
+          if (iframe) {
+            console.log("Iframe found in shadow:", iframe);
+            console.log("Iframe src:", iframe.src);
           }
         }
 
-        // Set the value first
-        console.log("Setting composer value...");
-        await chatkit.setComposerValue("hi");
-        
-        // Try calling submit/send on the element directly
-        if (typeof element.submit === 'function') {
-          console.log("Trying element.submit()");
-          element.submit();
-        }
-        if (typeof element.send === 'function') {
-          console.log("Trying element.send()");
-          element.send();
-        }
-        if (typeof element.sendMessage === 'function') {
-          console.log("Trying element.sendMessage()");
-          element.sendMessage();
+        // Log all chatkit methods again with types
+        console.log("=== All chatkit hook methods ===");
+        for (const key of Object.keys(chatkit)) {
+          console.log(`chatkit.${key}:`, typeof chatkit[key]);
         }
         
       }, 1500);
