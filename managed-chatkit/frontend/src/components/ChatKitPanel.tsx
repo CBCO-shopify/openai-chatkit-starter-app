@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
 
 export function ChatKitPanel() {
+  const [hasTriggered, setHasTriggered] = useState(false);
+  
   const getClientSecret = useMemo(
     () => createClientSecretFetcher(workflowId),
     []
@@ -15,6 +17,17 @@ export function ChatKitPanel() {
     threadItemActions: {
       feedback: false,
       retry: false,
+    },
+
+    onLoad: () => {
+      console.log("ChatKit onLoad fired");
+      if (!hasTriggered) {
+        setHasTriggered(true);
+      }
+    },
+
+    onReady: () => {
+      console.log("ChatKit onReady fired");
     },
 
     onClientTool: async (toolCall) => {
@@ -84,6 +97,16 @@ export function ChatKitPanel() {
       return { error: "Unknown tool: " + toolCall.name };
     },
   });
+
+  useEffect(() => {
+    if (chatkit.control) {
+      console.log("=== ChatKit Control Debug ===");
+      console.log("Control:", chatkit.control);
+      console.log("Control keys:", Object.keys(chatkit.control));
+      console.log("Chatkit object keys:", Object.keys(chatkit));
+      console.log("Full chatkit:", chatkit);
+    }
+  }, [chatkit.control]);
 
   return (
     <div
