@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from "react";
+import { useMemo } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
 
@@ -15,6 +15,11 @@ export function ChatKitPanel() {
     threadItemActions: {
       feedback: false,
       retry: false,
+    },
+
+    greeting: {
+      message: "",
+      triggerAgent: true,
     },
 
     onClientTool: async (toolCall) => {
@@ -84,47 +89,6 @@ export function ChatKitPanel() {
       return { error: "Unknown tool: " + toolCall.name };
     },
   });
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      console.log("=== DEBUG: Deep scan for ChatKit elements ===");
-      
-      const iframes = document.querySelectorAll('iframe');
-      console.log("Iframes found:", iframes.length);
-      iframes.forEach((iframe, i) => {
-        console.log(`Iframe ${i}:`, iframe.src, iframe);
-      });
-
-      const contentEditables = document.querySelectorAll('[contenteditable="true"]');
-      console.log("Contenteditable elements:", contentEditables.length);
-      contentEditables.forEach((el, i) => {
-        console.log(`Contenteditable ${i}:`, el);
-      });
-
-      const shadowHosts = document.querySelectorAll('*');
-      let shadowCount = 0;
-      shadowHosts.forEach((el) => {
-        if (el.shadowRoot) {
-          shadowCount++;
-          console.log("Shadow DOM host found:", el);
-          console.log("Shadow content:", el.shadowRoot.innerHTML.substring(0, 500));
-        }
-      });
-      console.log("Total shadow DOMs:", shadowCount);
-
-      const divWithRole = document.querySelectorAll('[role="textbox"]');
-      console.log("Div textboxes (role=textbox):", divWithRole.length);
-
-      const chatKitContainer = document.querySelector('[class*="chatkit"], [class*="ChatKit"], [data-chatkit]');
-      console.log("ChatKit container:", chatKitContainer);
-
-      console.log("Full body HTML preview:", document.body.innerHTML.substring(0, 2000));
-      
-      console.log("=== END DEBUG ===");
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
     <div
