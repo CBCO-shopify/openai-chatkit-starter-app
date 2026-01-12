@@ -16,17 +16,17 @@ export function ChatKitPanel() {
         {
           label: "Order Enquiry",
           prompt: "I'd like to check on an existing order",
-          icon: "search"
+          icon: "package"
         },
         {
           label: "Product Help",
           prompt: "I need help choosing the right product for my space",
-          icon: "lightbulb"
+          icon: "search"
         },
         {
           label: "Measure & Install",
           prompt: "I need guidance on measuring or installing my order",
-          icon: "ruler"
+          icon: "clipboard"
         },
         {
           label: "Other",
