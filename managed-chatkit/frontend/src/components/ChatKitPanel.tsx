@@ -115,7 +115,7 @@ export function ChatKitPanel() {
       content: [
         {
           type: "widget",
-          name: "trax-welcome-actions",
+          name: "Trax Welcome",
           state: {
             title: "Hi! I’m Trax 👋",
             message:
@@ -178,9 +178,25 @@ export function ChatKitPanel() {
           backgroundColor: "white",
           borderTop: "1px solid #eee",
         }}
-      >
-        Powered by The Curtain & Blind Co
-      </div>
-    </div>
+>
+  <div
+    style={{
+      marginBottom: "4px",
+      color: "var(--trax-green)",
+      fontSize: "11px",
+    }}
+  >
+    Tip: you can ask for a human any time.
+  </div>
+
+  <div
+    style={{
+      color: "#999",
+      fontSize: "11px",
+    }}
+  >
+    Powered by The Curtain & Blind Co
+  </div>
+</div>
   );
 }
