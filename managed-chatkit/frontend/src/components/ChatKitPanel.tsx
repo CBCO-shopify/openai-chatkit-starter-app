@@ -90,7 +90,13 @@ export function ChatKitPanel() {
   useEffect(() => {
     if (chatkit.sendUserMessage && !hasTriggered) {
       setHasTriggered(true);
-      chatkit.sendUserMessage("hi");
+      
+      const timer = setTimeout(() => {
+        console.log("Attempting to send message...");
+        chatkit.sendUserMessage("hi");
+      }, 1500);
+      
+      return () => clearTimeout(timer);
     }
   }, [chatkit.sendUserMessage, hasTriggered]);
 
