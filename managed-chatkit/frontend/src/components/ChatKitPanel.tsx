@@ -114,13 +114,14 @@ export function ChatKitPanel() {
 
   return (
     <>
-      <style>{`
-        /* Make greeting text smaller - it's an h2 */
-        #chatkit-container h2 {
-          font-size: 16px !important;
-          font-weight: 400 !important;
-          line-height: 1.5 !important;
-        }
+<style>{`
+  /* Force greeting text smaller - use multiple selectors */
+  h2 {
+    font-size: 16px !important;
+    font-weight: 400 !important;
+    line-height: 1.5 !important;
+  }
+`}</style>
       `}</style>
       <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100%", backgroundColor: "#f8f7f4" }}>
         {/* Header */}
