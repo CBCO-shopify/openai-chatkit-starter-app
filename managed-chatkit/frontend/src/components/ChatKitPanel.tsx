@@ -14,22 +14,22 @@ export function ChatKitPanel() {
       greeting: "Hi! I'm Trax, C&BCo's new AI agent in training. If at any point you'd prefer help from a human, just let me know and I'll send your query to our service team. How can I help you today?",
       prompts: [
         {
-          name: "Order Enquiry",
+          label: "Order Enquiry",
           prompt: "I'd like to check on an existing order",
           icon: "search"
         },
         {
-          name: "Product Help",
+          label: "Product Help",
           prompt: "I need help choosing the right product for my space",
           icon: "lightbulb"
         },
         {
-          name: "Measure & Install",
+          label: "Measure & Install",
           prompt: "I need guidance on measuring or installing my order",
           icon: "ruler"
         },
         {
-          name: "Other",
+          label: "Other",
           prompt: "I have a different question",
           icon: "chat"
         }
