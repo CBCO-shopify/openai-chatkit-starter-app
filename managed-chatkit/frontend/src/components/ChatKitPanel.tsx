@@ -16,6 +16,11 @@ export function ChatKitPanel() {
     composer: {
       placeholder: "Chat to Trax"
     },
+    // ✅ Hide thumbs + retry
+    threadItemActions: {
+    feedback: false,
+    retry: false,
+  },
     startScreen: {
       greeting: "",
       prompts: [
