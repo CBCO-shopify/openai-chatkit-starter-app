@@ -94,38 +94,27 @@ export function ChatKitPanel() {
       setTimeout(async () => {
         const element = chatkit.ref.current;
         
-        console.log("=== Exploring ChatKit element ===");
+        console.log("=== Trying direct element method ===");
         
-        // Get all properties including non-enumerable
-        const allProps = Object.getOwnPropertyNames(element);
-        console.log("All properties:", allProps.join(", "));
-        
-        // Check prototype chain
-        const proto = Object.getPrototypeOf(element);
-        const protoMethods = Object.getOwnPropertyNames(proto);
-        console.log("Prototype methods:", protoMethods.join(", "));
-        
-        // Go deeper in prototype chain
-        const proto2 = Object.getPrototypeOf(proto);
-        if (proto2) {
-          const proto2Methods = Object.getOwnPropertyNames(proto2);
-          console.log("Prototype level 2:", proto2Methods.join(", "));
+        // First set the composer value
+        try {
+          console.log("Setting composer value via element...");
+          element.setComposerValue("hi");
+          console.log("setComposerValue done");
+        } catch (e) {
+          console.log("setComposerValue error:", e);
         }
         
-        // Check for shadowRoot content
-        if (element.shadowRoot) {
-          console.log("Shadow root found");
-          const iframe = element.shadowRoot.querySelector('iframe');
-          if (iframe) {
-            console.log("Iframe found in shadow:", iframe);
-            console.log("Iframe src:", iframe.src);
-          }
-        }
-
-        // Log all chatkit methods again with types
-        console.log("=== All chatkit hook methods ===");
-        for (const key of Object.keys(chatkit)) {
-          console.log(`chatkit.${key}:`, typeof chatkit[key]);
+        // Wait a bit then try sending
+        await new Promise(r => setTimeout(r, 500));
+        
+        // Try sendUserMessage directly on element
+        try {
+          console.log("Trying element.sendUserMessage('hi')...");
+          element.sendUserMessage("hi");
+          console.log("sendUserMessage done");
+        } catch (e) {
+          console.log("sendUserMessage error:", e);
         }
         
       }, 1500);
