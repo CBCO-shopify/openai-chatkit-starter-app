@@ -47,11 +47,11 @@ export function ChatKitPanel() {
               "Content-Type": "application/json"
             },
             body: JSON.stringify({
-              customer_email: toolCall.arguments.customer_email,
-              customer_phone: toolCall.arguments.customer_phone || "",
-              subject: toolCall.arguments.subject,
-              summary: toolCall.arguments.summary,
-              conversation_transcript: toolCall.arguments.conversation_transcript
+              customer_email: toolCall.customer_email,
+              customer_phone: toolCall.customer_phone || "",
+              subject: toolCall.subject,
+              summary: toolCall.summary,
+              conversation_transcript: toolCall.conversation_transcript
             })
           });
           if (!response.ok) {
