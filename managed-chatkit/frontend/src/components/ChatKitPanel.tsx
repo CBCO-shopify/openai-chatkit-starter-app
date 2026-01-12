@@ -37,7 +37,7 @@ export function ChatKitPanel() {
       ]
     },
       onClientTool: async (toolCall) => {
-      console.log("Client tool called:", toolCall.name, toolCall.arguments);
+      console.log("Client tool called:", toolCall.name, toolCall);
       
       if (toolCall.name === "create_gorgias_ticket") {
         try {
@@ -80,7 +80,6 @@ export function ChatKitPanel() {
             body: JSON.stringify({
               order_number: toolCall.order_number,
               email: toolCall.email
-            })
             })
           });
           if (!response.ok) {
