@@ -186,7 +186,7 @@ export function ChatKitPanel() {
       fontSize: "11px",
     }}
   >
-    Tip: you can ask for a human any time.
+    Tip: you send this chat to a human anytime.
   </div>
 
   <div
