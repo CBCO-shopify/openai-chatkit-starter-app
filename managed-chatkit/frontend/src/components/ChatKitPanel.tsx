@@ -17,11 +17,6 @@ export function ChatKitPanel() {
       retry: false,
     },
 
-    greeting: {
-      message: "",
-      triggerAgent: true,
-    },
-
     onClientTool: async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall);
 
