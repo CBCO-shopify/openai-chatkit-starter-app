@@ -87,7 +87,9 @@ export function ChatKitPanel() {
 
   useEffect(() => {
     if (chatkit.control) {
-      chatkit.control.sendMessage("");
+      console.log("ChatKit control object:", chatkit.control);
+      console.log("Available methods:", Object.keys(chatkit.control));
+      console.log("Full control:", JSON.stringify(chatkit.control, null, 2));
     }
   }, [chatkit.control]);
 
