@@ -3,7 +3,6 @@ import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
 
 function getThreadKey(control: any) {
-  // Try common identifiers; fall back to a stable “default”
   return (
     control?.thread?.id ||
     control?.threadId ||
@@ -34,9 +33,7 @@ export function ChatKitPanel() {
       retry: false,
     },
 
-    // IMPORTANT:
-    // Do NOT set startScreen.enabled in your build (it errors).
-    // Also, we’re not using ChatKit’s startScreen prompts anymore.
+    // IMPORTANT: Your ChatKit build rejects startScreen.enabled, so we omit startScreen entirely.
 
     onClientTool: async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall);
@@ -116,78 +113,98 @@ export function ChatKitPanel() {
     const control: any = chatkit.control;
     if (!control) return;
 
-    const thread = control.thread;
-    const items = thread?.items ?? control?.threadItems ?? [];
+    const tryInject = () => {
+      const ctrl: any = chatkit.control;
+      if (!ctrl) return false;
 
-    // If the thread already has messages, it's not a new session -> do nothing
-    if (Array.isArray(items) && items.length > 0) {
+      const thread = ctrl.thread;
+
+      // If thread already has messages, don't inject (not a new session)
+      const items = thread?.items ?? ctrl?.threadItems ?? [];
+      if (Array.isArray(items) && items.length > 0) {
+        didInjectWelcome.current = true;
+        return true;
+      }
+
+      // Find an append-like API (varies by build)
+      const appendFn =
+        (typeof thread?.append === "function" && ((x: any) => thread.append(x))) ||
+        (typeof ctrl?.addThreadItem === "function" && ((x: any) => ctrl.addThreadItem(x))) ||
+        (typeof ctrl?.appendThreadItem === "function" && ((x: any) => ctrl.appendThreadItem(x))) ||
+        (typeof ctrl?.pushThreadItem === "function" && ((x: any) => ctrl.pushThreadItem(x))) ||
+        null;
+
+      // Not ready yet — keep waiting
+      if (!appendFn) return false;
+
+      // LocalStorage guard so refreshes don’t re-add it to an empty thread
+      const threadKey = String(getThreadKey(ctrl));
+      const storageKey = `trax_welcome_shown:${workflowId}:${threadKey}`;
+      if (localStorage.getItem(storageKey) === "1") {
+        didInjectWelcome.current = true;
+        return true;
+      }
+
+      localStorage.setItem(storageKey, "1");
       didInjectWelcome.current = true;
-      return;
-    }
 
-    // Detect an append-like API (varies by ChatKit build)
-    const appendFn =
-      (typeof thread?.append === "function" && ((x: any) => thread.append(x))) ||
-      (typeof control?.addThreadItem === "function" && ((x: any) => control.addThreadItem(x))) ||
-      (typeof control?.appendThreadItem === "function" && ((x: any) => control.appendThreadItem(x))) ||
-      (typeof control?.pushThreadItem === "function" && ((x: any) => control.pushThreadItem(x))) ||
-      null;
-
-    // If ChatKit isn’t ready yet, wait for the next render
-    if (!appendFn) return;
-
-    // LocalStorage guard so refreshes don’t re-add it to an empty thread
-    const threadKey = String(getThreadKey(control));
-    const storageKey = `trax_welcome_shown:${workflowId}:${threadKey}`;
-    if (localStorage.getItem(storageKey) === "1") {
-      didInjectWelcome.current = true;
-      return;
-    }
-
-    // Mark + inject
-    localStorage.setItem(storageKey, "1");
-    didInjectWelcome.current = true;
-
-    appendFn({
-      role: "assistant",
-      content: [
-        {
-          type: "widget",
-          name: "Trax Welcome",
-          state: {
-            title: "Hi! I’m Trax 👋",
-            message:
-              "I’m C&BCo’s new AI agent in training. If you’d prefer help from a human at any point, tell me and I’ll send your query to our service team. How can I help today?",
-            options: [
-              {
-                id: "order",
-                label: "Order enquiry",
-                prompt: "I'd like to check on an existing order",
-                icon: "suitcase",
-              },
-              {
-                id: "product",
-                label: "Product help",
-                prompt: "I need help choosing the right product for my space",
-                icon: "search",
-              },
-              {
-                id: "install",
-                label: "Measure & install",
-                prompt: "I need guidance on measuring or installing my order",
-                icon: "info",
-              },
-              {
-                id: "other",
-                label: "Other",
-                prompt: "I have a different question",
-                icon: "circle-question",
-              },
-            ],
+      appendFn({
+        role: "assistant",
+        content: [
+          {
+            type: "widget",
+            name: "Trax Welcome",
+            state: {
+              title: "Hi! I’m Trax 👋",
+              message:
+                "I’m C&BCo’s new AI agent in training. If you’d prefer help from a human at any point, tell me and I’ll send your query to our service team. How can I help today?",
+              options: [
+                {
+                  id: "order",
+                  label: "Order enquiry",
+                  prompt: "I'd like to check on an existing order",
+                  icon: "suitcase",
+                },
+                {
+                  id: "product",
+                  label: "Product help",
+                  prompt: "I need help choosing the right product for my space",
+                  icon: "search",
+                },
+                {
+                  id: "install",
+                  label: "Measure & install",
+                  prompt: "I need guidance on measuring or installing my order",
+                  icon: "info",
+                },
+                {
+                  id: "other",
+                  label: "Other",
+                  prompt: "I have a different question",
+                  icon: "circle-question",
+                },
+              ],
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
+
+      return true;
+    };
+
+    // ✅ Poll briefly until ChatKit has the append API ready (so the widget appears immediately)
+    // This avoids the “not ready on first render” problem.
+    const start = Date.now();
+    const interval = window.setInterval(() => {
+      const done = tryInject();
+      const timedOut = Date.now() - start > 5000; // 5s safety timeout
+      if (done || timedOut) window.clearInterval(interval);
+    }, 100);
+
+    // Try immediately too (best effort)
+    tryInject();
+
+    return () => window.clearInterval(interval);
   }, [chatkit.control]);
 
   return (
@@ -200,18 +217,19 @@ export function ChatKitPanel() {
         backgroundColor: "var(--background)",
       }}
     >
-      {/* Top Header (restored) */}
+      {/* Top Header (restored + correct background) */}
       <div
         style={{
           padding: "12px 16px",
-          backgroundColor: "white",
-          borderBottom: "1px solid #eee",
+          backgroundColor: "var(--trax-green)",
+          color: "var(--trax-paper)",
+          borderBottom: "1px solid rgba(255,255,255,0.15)",
         }}
       >
         <div>
           <div style={{ fontWeight: 600, fontSize: "16px" }}>Traxine</div>
-          <div style={{ fontSize: "12px", opacity: 0.8 }}>
-            C&BCo&apos;s AI Assistant
+          <div style={{ fontSize: "12px", opacity: 0.9 }}>
+            C&amp;BCo&apos;s AI Assistant
           </div>
         </div>
       </div>
@@ -237,7 +255,9 @@ export function ChatKitPanel() {
         <div style={{ marginBottom: "4px", color: "var(--trax-green)" }}>
           Tip: you can ask for a human any time.
         </div>
-        <div style={{ color: "#999" }}>Powered by The Curtain &amp; Blind Co</div>
+        <div style={{ color: "#999" }}>
+          Powered by The Curtain &amp; Blind Co
+        </div>
       </div>
     </div>
   );
