@@ -36,8 +36,7 @@ export function ChatKitPanel() {
         }
       ]
     },
-    
-      onClientTool: async (toolCall) => {
+    onClientTool: async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall);
       
       if (toolCall.name === "create_gorgias_ticket") {
@@ -104,25 +103,6 @@ export function ChatKitPanel() {
   return (
     <>
       <style>{`
-        /* Change placeholder text */
-        [data-chatkit-input] textarea::placeholder,
-        .chatkit-input textarea::placeholder,
-        textarea[placeholder="Message the AI"]::placeholder {
-          color: transparent;
-        }
-        [data-chatkit-input] textarea,
-        .chatkit-input textarea,
-        textarea[placeholder="Message the AI"] {
-          background-image: none;
-        }
-        textarea[placeholder="Message the AI"] {
-          font-size: 0;
-        }
-        textarea[placeholder="Message the AI"]::placeholder {
-          font-size: 16px;
-          content: "Chat to Trax";
-        }
-        
         /* Make greeting text smaller */
         [data-chatkit-greeting],
         .chatkit-greeting,
@@ -133,7 +113,7 @@ export function ChatKitPanel() {
           line-height: 1.5 !important;
         }
         
-        /* Change "Thinking" text - hide original, we'll handle differently */
+        /* Style thinking indicator */
         [data-chatkit-thinking],
         [class*="thinking"],
         [class*="Thinking"] {
@@ -141,52 +121,51 @@ export function ChatKitPanel() {
         }
       `}</style>
       <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100%", backgroundColor: "#f8f7f4" }}>
-    
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100%", backgroundColor: "#f8f7f4" }}>
-      {/* Header */}
-      <div style={{ 
-        display: "flex", 
-        alignItems: "center", 
-        gap: "12px", 
-        padding: "12px 16px", 
-        backgroundColor: "#3d6b4f", 
-        color: "white" 
-      }}>
+        {/* Header */}
         <div style={{ 
-          width: "40px", 
-          height: "40px", 
-          borderRadius: "50%", 
-          backgroundColor: "rgba(255,255,255,0.2)", 
           display: "flex", 
           alignItems: "center", 
-          justifyContent: "center",
-          fontSize: "18px",
-          fontWeight: "bold"
+          gap: "12px", 
+          padding: "12px 16px", 
+          backgroundColor: "#3d6b4f", 
+          color: "white" 
         }}>
-          
+          <div style={{ 
+            width: "40px", 
+            height: "40px", 
+            borderRadius: "50%", 
+            backgroundColor: "rgba(255,255,255,0.2)", 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center",
+            fontSize: "18px",
+            fontWeight: "bold"
+          }}>
+            
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: "16px" }}>Traxine</div>
+            <div style={{ fontSize: "12px", opacity: 0.8 }}>C&BCo's AI Assistant</div>
+          </div>
         </div>
-        <div>
-          <div style={{ fontWeight: 600, fontSize: "16px" }}>Traxine</div>
-          <div style={{ fontSize: "12px", opacity: 0.8 }}>C&BCo's AI Assistant</div>
+        
+        {/* Chat Area */}
+        <div style={{ flex: 1, overflow: "hidden" }}>
+          <ChatKit control={chatkit.control} style={{ height: "100%", width: "100%" }} />
+        </div>
+        
+        {/* Footer */}
+        <div style={{ 
+          padding: "8px 16px", 
+          textAlign: "center", 
+          fontSize: "11px", 
+          color: "#999", 
+          backgroundColor: "white", 
+          borderTop: "1px solid #eee" 
+        }}>
+          Powered by The Curtain & Blind Co
         </div>
       </div>
-      
-      {/* Chat Area */}
-      <div style={{ flex: 1, overflow: "hidden" }}>
-        <ChatKit control={chatkit.control} style={{ height: "100%", width: "100%" }} />
-      </div>
-      
-      {/* Footer */}
-      <div style={{ 
-        padding: "8px 16px", 
-        textAlign: "center", 
-        fontSize: "11px", 
-        color: "#999", 
-        backgroundColor: "white", 
-        borderTop: "1px solid #eee" 
-      }}>
-        Powered by The Curtain & Blind Co
-      </div>
-    </div>
+    </>
   );
 }
