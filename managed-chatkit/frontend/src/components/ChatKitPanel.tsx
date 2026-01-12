@@ -10,6 +10,7 @@ export function ChatKitPanel() {
 
   const chatkit = useChatKit({
     api: { getClientSecret },
+    header: { enabled: false },
     startScreen: {
       greeting: "Hi! I'm Trax, C&BCo's new AI agent in training. If at any point you'd prefer help from a human, just let me know and I'll send your query to our service team. How can I help you today?",
       prompts: [
@@ -97,7 +98,7 @@ export function ChatKitPanel() {
           fontSize: "18px",
           fontWeight: "bold"
         }}>
-          T
+          
         </div>
         <div>
           <div style={{ fontWeight: 600, fontSize: "16px" }}>Traxine</div>
