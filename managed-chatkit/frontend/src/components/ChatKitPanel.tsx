@@ -90,7 +90,7 @@ export function ChatKitPanel() {
   useEffect(() => {
     if (chatkit.sendUserMessage && !hasTriggered) {
       setHasTriggered(true);
-      chatkit.sendUserMessage("");
+      chatkit.sendUserMessage("hi");
     }
   }, [chatkit.sendUserMessage, hasTriggered]);
 
