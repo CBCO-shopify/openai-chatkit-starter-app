@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
 
@@ -100,24 +100,26 @@ export function ChatKitPanel() {
     }
   });
 
+  // Change placeholder text
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const textarea = document.getElementById('chatkit-composer-input') as HTMLTextAreaElement;
+      if (textarea && textarea.placeholder === "Message the AI") {
+        textarea.placeholder = "Chat to Trax";
+        clearInterval(interval);
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <>
       <style>{`
-        /* Make greeting text smaller */
-        [data-chatkit-greeting],
-        .chatkit-greeting,
-        [class*="greeting"],
-        [class*="Greeting"] {
+        /* Make greeting text smaller - it's an h2 */
+        #chatkit-container h2 {
           font-size: 16px !important;
           font-weight: 400 !important;
           line-height: 1.5 !important;
-        }
-        
-        /* Style thinking indicator */
-        [data-chatkit-thinking],
-        [class*="thinking"],
-        [class*="Thinking"] {
-          font-size: 14px !important;
         }
       `}</style>
       <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100%", backgroundColor: "#f8f7f4" }}>
