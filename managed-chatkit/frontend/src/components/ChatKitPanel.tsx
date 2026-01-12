@@ -10,6 +10,31 @@ export function ChatKitPanel() {
 
   const chatkit = useChatKit({
     api: { getClientSecret },
+    startScreen: {
+      greeting: "Hi! I'm Trax, C&BCo's new AI agent in training. If at any point you'd prefer help from a human, just let me know and I'll send your query to our service team. How can I help you today?",
+      prompts: [
+        {
+          name: "Order Enquiry",
+          prompt: "I'd like to check on an existing order",
+          icon: "search"
+        },
+        {
+          name: "Product Help",
+          prompt: "I need help choosing the right product for my space",
+          icon: "lightbulb"
+        },
+        {
+          name: "Measure & Install",
+          prompt: "I need guidance on measuring or installing my order",
+          icon: "ruler"
+        },
+        {
+          name: "Other",
+          prompt: "I have a different question",
+          icon: "chat"
+        }
+      ]
+    },
     onClientToolCall: async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall.arguments);
       
