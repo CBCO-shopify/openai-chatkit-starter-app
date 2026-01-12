@@ -155,6 +155,32 @@ export function ChatKitPanel() {
           <div style={{ fontSize: "12px", opacity: 0.8 }}>C&BCo's AI Assistant</div>
         </div>
       </div>
+
+      {/* Custom Welcome Message - only shows before chat starts */}
+      {!hasStarted && (
+        <div style={{
+          padding: "24px 20px 0 20px",
+          textAlign: "center"
+        }}>
+          <h2 style={{
+            fontSize: "20px",
+            fontWeight: "600",
+            margin: "0 0 8px 0",
+            color: "#333"
+          }}>
+            Hi there! 👋
+          </h2>
+          <p style={{
+            fontSize: "15px",
+            fontWeight: "400",
+            lineHeight: "1.5",
+            margin: "0",
+            color: "#666"
+          }}>
+            I'm Trax, C&BCo's new AI agent in training. If at any point you'd prefer help from a human, just let me know and I'll send your query to our service team. How can I help you today?
+          </p>
+        </div>
+      )}
       
       {/* Chat Area */}
       <div style={{ flex: 1, overflow: "hidden" }}>
