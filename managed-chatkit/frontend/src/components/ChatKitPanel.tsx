@@ -78,8 +78,9 @@ export function ChatKitPanel() {
               "Content-Type": "application/json"
             },
             body: JSON.stringify({
-              order_number: toolCall.order_number,
-              email: toolCall.email
+              order_number: toolCall.params.order_number,
+              email: toolCall.params.email
+            })
             })
           });
           if (!response.ok) {
