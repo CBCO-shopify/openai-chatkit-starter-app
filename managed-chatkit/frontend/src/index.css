@@ -1,18 +1,39 @@
 @import "tailwindcss";
 
+/* =========================
+   GLOBAL THEME TOKENS
+   ========================= */
 :root {
   --background: #f8f7f4;
   --foreground: #2c3e50;
+
+  /* Base “primary” tokens (kept for the rest of the site) */
   --primary: #3d6b4f;
   --primary-foreground: #ffffff;
+
+  /* =========================
+     TRAX / CHATKIT BRANDING
+     (your requested colours)
+     ========================= */
+  --trax-green: #3F7553;  /* border + text */
+  --trax-paper: #f5f2f0;  /* button background */
+  --trax-radius: 8px;     /* button shape: try 6px if you want sharper */
+
   color-scheme: light;
 }
 
 :root[data-color-scheme="dark"] {
   --background: #1a1a1a;
   --foreground: #ededed;
+
   --primary: #4a7c5f;
   --primary-foreground: #ffffff;
+
+  /* Trax in dark mode: keep same hues, just make paper darker */
+  --trax-green: #3F7553;
+  --trax-paper: #2b2623;
+  --trax-radius: 8px;
+
   color-scheme: dark;
 }
 
@@ -20,8 +41,14 @@
   :root:not([data-color-scheme]) {
     --background: #1a1a1a;
     --foreground: #ededed;
+
     --primary: #4a7c5f;
     --primary-foreground: #ffffff;
+
+    --trax-green: #3F7553;
+    --trax-paper: #2b2623;
+    --trax-radius: 8px;
+
     color-scheme: dark;
   }
 }
@@ -34,6 +61,46 @@
   --font-mono: SFMono-Regular, Consolas, "Liberation Mono", monospace;
 }
 
+/* =========================
+   TRAX / CHATKIT OVERRIDES
+   ========================= */
+
+/* Buttons: paper background, green border + text, de-pill radius */
+[data-chatkit-root] button,
+[data-chatkit] button {
+  background: var(--trax-paper) !important;
+  color: var(--trax-green) !important;
+  border: 1px solid var(--trax-green) !important;
+  border-radius: var(--trax-radius) !important;
+}
+
+/* Hover: invert */
+[data-chatkit-root] button:hover,
+[data-chatkit] button:hover {
+  background: var(--trax-green) !important;
+  color: var(--trax-paper) !important;
+}
+
+/* Make SVG icons invert with text */
+[data-chatkit-root] button svg,
+[data-chatkit] button svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Remove the border/shadow around the widget “card” container */
+[data-chatkit-root] [data-card],
+[data-chatkit-root] [role="group"],
+[data-chatkit] [data-card],
+[data-chatkit] [role="group"] {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* =========================
+   BASE PAGE STYLES
+   ========================= */
 body {
   background: var(--background);
   color: var(--foreground);
