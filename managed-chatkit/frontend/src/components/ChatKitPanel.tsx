@@ -92,17 +92,14 @@ export function ChatKitPanel() {
       setHasTriggered(true);
       
       setTimeout(() => {
-        console.log("Testing different parameter formats...");
+        console.log("Trying array format...");
         
-        // Log the function to see what it expects
-        console.log("Function:", chatkit.sendUserMessage.toString().substring(0, 200));
-        
-        // Try object format
+        // Try array of content parts (like OpenAI message format)
         try {
-          console.log("Trying: { content: 'hi' }");
-          chatkit.sendUserMessage({ content: "hi" });
+          console.log("Trying: [{ type: 'text', text: 'hi' }]");
+          chatkit.sendUserMessage([{ type: "text", text: "hi" }]);
         } catch (e) {
-          console.log("Object format error:", e);
+          console.log("Array format error:", e);
         }
       }, 1000);
     }
