@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
 
@@ -90,6 +90,13 @@ export function ChatKitPanel() {
     },
   });
 
+  // Auto-trigger the Welcome agent on load
+  useEffect(() => {
+    if (chatkit.control) {
+      chatkit.control.sendMessage("");
+    }
+  }, [chatkit.control]);
+
   return (
     <div
       style={{
@@ -145,3 +152,16 @@ export function ChatKitPanel() {
     </div>
   );
 }
+```
+
+**Key changes:**
+1. Added `useEffect` import at the top
+2. Added the `useEffect` hook that sends an empty message (`""`) when the chat control is ready
+
+This will trigger your Welcome agent automatically on load. The Welcome agent should then pass through to My agent, and the "Trax Welcome" widget will display whatever buttons/UI you've configured.
+
+---
+
+**In your Welcome agent instructions**, you can set it to simply output nothing or a minimal trigger. Try this for the Welcome instructions:
+```
+Output nothing. Simply pass through to the next agent.
