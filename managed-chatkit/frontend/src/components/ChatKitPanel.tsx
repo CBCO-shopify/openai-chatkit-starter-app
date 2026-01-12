@@ -95,62 +95,62 @@ export function ChatKitPanel() {
   });
 
   // ✅ Inject the welcome widget ONCE per session load
-  const didInjectWelcome = useRef(false);
+const didInjectWelcome = useRef(false);
 
-  useEffect(() => {
-    if (didInjectWelcome.current) return;
+useEffect(() => {
+  if (didInjectWelcome.current) return;
+  const control: any = chatkit.control;
+  if (!control) return;
 
-    // If there are already messages, don't inject again
-    const items = chatkit.control?.thread?.items ?? [];
-    if (items.length > 0) {
-      didInjectWelcome.current = true;
-      return;
-    }
+  // Thread may not be ready yet in this build
+  const thread = control.thread;
+  const items = thread?.items ?? [];
 
+  // If items already exist, don't inject (returning session)
+  if (items.length > 0) {
     didInjectWelcome.current = true;
+    return;
+  }
 
-    // ⚠️ Replace "trax-welcome-actions" with your widget's actual ID/name
-    chatkit.control.thread.append({
-      role: "assistant",
-      content: [
-        {
-          type: "widget",
-          name: "Trax Welcome",
-          state: {
-            title: "Hi! I’m Trax 👋",
-            message:
-              "I’m C&BCo’s new AI agent in training. If you’d prefer help from a human at any point, tell me and I’ll send your query to our service team. How can I help today?",
-            options: [
-              {
-                id: "order",
-                label: "Order enquiry",
-                prompt: "I'd like to check on an existing order",
-                icon: "suitcase",
-              },
-              {
-                id: "product",
-                label: "Product help",
-                prompt: "I need help choosing the right product for my space",
-                icon: "search",
-              },
-              {
-                id: "install",
-                label: "Measure & install",
-                prompt: "I need guidance on measuring or installing my order",
-                icon: "info",
-              },
-              {
-                id: "other",
-                label: "Other",
-                prompt: "I have a different question",
-                icon: "circle-question",
-              },
-            ],
-          },
+  // We can only inject once the thread has a way to accept items
+  const canAppend =
+    typeof thread?.append === "function" ||
+    typeof control?.addThreadItem === "function" ||
+    typeof control?.appendThreadItem === "function" ||
+    typeof control?.pushThreadItem === "function";
+
+  if (!canAppend) return; // wait for the next render when APIs are ready
+
+  didInjectWelcome.current = true;
+
+  const welcomeItem = {
+    role: "assistant",
+    content: [
+      {
+        type: "widget",
+        name: "Trax Welcome",
+        state: {
+          title: "Hi! I’m Trax 👋",
+          message:
+            "I’m C&BCo’s new AI agent in training. If you’d prefer help from a human at any point, tell me and I’ll send your query to our service team. How can I help today?",
+          options: [
+            { id: "order", label: "Order enquiry", prompt: "I'd like to check on an existing order", icon: "suitcase" },
+            { id: "product", label: "Product help", prompt: "I need help choosing the right product for my space", icon: "search" },
+            { id: "install", label: "Measure & install", prompt: "I need guidance on measuring or installing my order", icon: "info" },
+            { id: "other", label: "Other", prompt: "I have a different question", icon: "circle-question" },
+          ],
         },
-      ],
-    });
-  }, [chatkit.control]);
+      },
+    ],
+  };
+
+  // Try the known APIs in order
+  if (typeof thread?.append === "function") thread.append(welcomeItem);
+  else if (typeof control?.addThreadItem === "function") control.addThreadItem(welcomeItem);
+  else if (typeof control?.appendThreadItem === "function") control.appendThreadItem(welcomeItem);
+  else if (typeof control?.pushThreadItem === "function") control.pushThreadItem(welcomeItem);
+}, [chatkit.control]);
+
 
 return (
   <div
