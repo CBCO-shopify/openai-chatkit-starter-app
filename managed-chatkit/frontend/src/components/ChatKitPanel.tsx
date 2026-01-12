@@ -88,40 +88,53 @@ export function ChatKitPanel() {
   });
 
   useEffect(() => {
-    if (chatkit.setComposerValue && !hasTriggered) {
+    if (chatkit.ref?.current && !hasTriggered) {
       setHasTriggered(true);
       
       setTimeout(async () => {
-        console.log("=== Testing alternative methods ===");
+        const element = chatkit.ref.current;
         
-        // Try setComposerValue
-        try {
-          console.log("Trying setComposerValue('hi')...");
-          await chatkit.setComposerValue("hi");
-          console.log("setComposerValue succeeded");
-        } catch (e) {
-          console.log("setComposerValue error:", e);
+        console.log("=== Exploring ChatKit element ===");
+        console.log("Element:", element);
+        
+        // Get all properties including non-enumerable
+        const allProps = Object.getOwnPropertyNames(element);
+        console.log("All properties:", allProps);
+        
+        // Check prototype chain
+        const proto = Object.getPrototypeOf(element);
+        console.log("Prototype methods:", Object.getOwnPropertyNames(proto));
+        
+        // Look for send/submit methods
+        for (const prop of [...allProps, ...Object.getOwnPropertyNames(proto)]) {
+          if (prop.toLowerCase().includes('send') || 
+              prop.toLowerCase().includes('submit') || 
+              prop.toLowerCase().includes('message')) {
+            console.log(`Found relevant method: ${prop}`, typeof element[prop]);
+          }
         }
 
-        // Try sendCustomAction
-        try {
-          console.log("Trying sendCustomAction...");
-          await chatkit.sendCustomAction({ type: "message", content: "hi" });
-          console.log("sendCustomAction succeeded");
-        } catch (e) {
-          console.log("sendCustomAction error:", e);
+        // Set the value first
+        console.log("Setting composer value...");
+        await chatkit.setComposerValue("hi");
+        
+        // Try calling submit/send on the element directly
+        if (typeof element.submit === 'function') {
+          console.log("Trying element.submit()");
+          element.submit();
         }
-
-        // Check the ref
-        console.log("ChatKit ref:", chatkit.ref);
-        if (chatkit.ref?.current) {
-          console.log("Ref current:", chatkit.ref.current);
-          console.log("Ref methods:", Object.keys(chatkit.ref.current));
+        if (typeof element.send === 'function') {
+          console.log("Trying element.send()");
+          element.send();
+        }
+        if (typeof element.sendMessage === 'function') {
+          console.log("Trying element.sendMessage()");
+          element.sendMessage();
         }
         
       }, 1500);
     }
-  }, [chatkit.setComposerValue, hasTriggered]);
+  }, [chatkit.ref, hasTriggered]);
 
   return (
     <div
