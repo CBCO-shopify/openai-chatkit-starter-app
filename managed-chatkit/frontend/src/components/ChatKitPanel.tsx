@@ -18,6 +18,11 @@ export function ChatKitPanel() {
       feedback: false,
       retry: false,
     },
+    
+    // Try to disable the empty state message
+    emptyState: { enabled: false },
+    welcome: { enabled: false },
+    placeholder: { enabled: false },
 
     onClientTool: async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall);
@@ -94,16 +99,13 @@ export function ChatKitPanel() {
       setTimeout(async () => {
         const element = chatkit.ref.current;
         
-        console.log("=== Trying { text: 'hi' } format ===");
-        
+        console.log("Sending auto-trigger...");
         try {
-          console.log("Sending: { text: 'hi' }");
           await element.sendUserMessage({ text: "hi" });
-          console.log("SUCCESS!");
+          console.log("Auto-trigger sent");
         } catch (e) {
           console.log("Error:", e.message);
         }
-        
       }, 2000);
     }
   }, [chatkit.ref, hasTriggered]);
