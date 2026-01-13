@@ -61,14 +61,14 @@ export function ChatKitPanel() {
   useEffect(() => {
     sendAnalytics("conversation_start");
   }, []);
-// Polling to capture messages (more reliable than MutationObserver for ChatKit)
+// Polling to capture messages (searching entire document)
   useEffect(() => {
     const checkForMessages = () => {
-      const container = chatContainerRef.current;
-      if (!container) return;
+      // Search entire document instead of just container
+      const userTurns = document.querySelectorAll('article[data-thread-turn="user"]');
+      const assistantTurns = document.querySelectorAll('article[data-thread-turn="assistant"]');
       
-      const userTurns = container.querySelectorAll('article[data-thread-turn="user"]');
-      const assistantTurns = container.querySelectorAll('article[data-thread-turn="assistant"]');
+      console.log("Polling - User turns:", userTurns.length, "Assistant turns:", assistantTurns.length);
       
       // Log user messages
       userTurns.forEach((turn) => {
@@ -97,9 +97,6 @@ export function ChatKitPanel() {
 
     // Check every 2 seconds
     const interval = setInterval(checkForMessages, 2000);
-    
-    // Also check immediately
-    checkForMessages();
 
     return () => clearInterval(interval);
   }, []);
