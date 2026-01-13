@@ -1,12 +1,39 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
+
+// Analytics helper
+const sendAnalytics = async (eventType: string, data: Record<string, unknown> = {}) => {
+  try {
+    if (!sessionStorage.getItem("trax_session")) {
+      sessionStorage.setItem("trax_session", crypto.randomUUID());
+    }
+    
+    await fetch("https://n8n.curtainworld.net.au/webhook/chatbot-analytics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_type: eventType,
+        timestamp: new Date().toISOString(),
+        session_id: sessionStorage.getItem("trax_session"),
+        ...data,
+      }),
+    });
+  } catch (e) {
+    console.log("Analytics error:", e);
+  }
+};
 
 export function ChatKitPanel() {
   const getClientSecret = useMemo(
     () => createClientSecretFetcher(workflowId),
     []
   );
+
+  // Track conversation start
+  useEffect(() => {
+    sendAnalytics("conversation_start");
+  }, []);
 
   const chatkit = useChatKit({
     api: { getClientSecret },
@@ -42,7 +69,16 @@ export function ChatKitPanel() {
     onClientTool: async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall);
 
+      // Track all tool calls
+      sendAnalytics("tool_call", { tool_name: toolCall.name });
+
       if (toolCall.name === "create_gorgias_ticket") {
+        // Track escalation
+        sendAnalytics("escalation", {
+          subject: toolCall.params.subject,
+          summary: toolCall.params.summary,
+        });
+
         try {
           const response = await fetch(
             "https://n8n.curtainworld.net.au/webhook/gorgias-escalation",
@@ -68,6 +104,12 @@ export function ChatKitPanel() {
           };
         } catch (error) {
           console.error("Gorgias ticket error:", error);
+          
+          sendAnalytics("error", {
+            tool_name: "create_gorgias_ticket",
+            error_message: error instanceof Error ? error.message : "Unknown error",
+          });
+
           return {
             success: false,
             message:
@@ -95,6 +137,12 @@ export function ChatKitPanel() {
           return await response.json();
         } catch (error) {
           console.error("Order lookup error:", error);
+
+          sendAnalytics("error", {
+            tool_name: "lookup_order",
+            error_message: error instanceof Error ? error.message : "Unknown error",
+          });
+
           return {
             success: false,
             message:
