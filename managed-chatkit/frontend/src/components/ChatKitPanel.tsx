@@ -69,14 +69,13 @@ export function ChatKitPanel() {
     onClientTool: async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall);
 
-      // Track all tool calls
-      sendAnalytics("tool_call", { tool_name: toolCall.name });
-
       if (toolCall.name === "create_gorgias_ticket") {
-        // Track escalation
+        // Track escalation with user context
         sendAnalytics("escalation", {
+          tool_name: "create_gorgias_ticket",
           subject: toolCall.params.subject,
           summary: toolCall.params.summary,
+          user_message: toolCall.params.summary,
         });
 
         try {
@@ -108,6 +107,7 @@ export function ChatKitPanel() {
           sendAnalytics("error", {
             tool_name: "create_gorgias_ticket",
             error_message: error instanceof Error ? error.message : "Unknown error",
+            user_message: toolCall.params.summary,
           });
 
           return {
@@ -119,6 +119,12 @@ export function ChatKitPanel() {
       }
 
       if (toolCall.name === "lookup_order") {
+        // Track order lookup
+        sendAnalytics("tool_call", {
+          tool_name: "lookup_order",
+          user_message: `Order lookup: ${toolCall.params.order_number}`,
+        });
+
         try {
           const response = await fetch(
             "https://n8n.curtainworld.net.au/webhook/order-lookup",
@@ -141,6 +147,7 @@ export function ChatKitPanel() {
           sendAnalytics("error", {
             tool_name: "lookup_order",
             error_message: error instanceof Error ? error.message : "Unknown error",
+            user_message: `Order lookup failed: ${toolCall.params.order_number}`,
           });
 
           return {
@@ -150,6 +157,12 @@ export function ChatKitPanel() {
           };
         }
       }
+
+      // Track unknown tools
+      sendAnalytics("tool_call", {
+        tool_name: toolCall.name,
+        user_message: "Unknown tool invoked",
+      });
 
       return { error: "Unknown tool: " + toolCall.name };
     },
