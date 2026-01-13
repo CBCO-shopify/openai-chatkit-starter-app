@@ -65,12 +65,24 @@ export function ChatKitPanel() {
   // DOM Observer to capture messages
   useEffect(() => {
     const container = chatContainerRef.current;
+    console.log("Observer setup - container:", container);
     if (!container) return;
 
     const observer = new MutationObserver(() => {
-      // Find all message turns
+      console.log("Mutation detected!");
+      
+      // Log what we can find
+      const allArticles = container.querySelectorAll('article');
+      console.log("Found articles:", allArticles.length);
+      
       const userTurns = container.querySelectorAll('article[data-thread-turn="user"]');
       const assistantTurns = container.querySelectorAll('article[data-thread-turn="assistant"]');
+      console.log("User turns:", userTurns.length, "Assistant turns:", assistantTurns.length);
+      
+      // If no articles found, log container contents
+      if (allArticles.length === 0) {
+        console.log("Container innerHTML (first 500 chars):", container.innerHTML.substring(0, 500));
+      }
       
       // Log user messages
       userTurns.forEach((turn) => {
@@ -79,6 +91,7 @@ export function ChatKitPanel() {
         
         if (!content || loggedMessagesRef.current.has(messageHash)) return;
         
+        console.log("Logging user message:", content.substring(0, 50));
         loggedMessagesRef.current.add(messageHash);
         logMessage('user', content);
       });
@@ -90,6 +103,7 @@ export function ChatKitPanel() {
         
         if (!content || loggedMessagesRef.current.has(messageHash)) return;
         
+        console.log("Logging assistant message:", content.substring(0, 50));
         loggedMessagesRef.current.add(messageHash);
         logMessage('assistant', content);
       });
@@ -103,7 +117,6 @@ export function ChatKitPanel() {
 
     return () => observer.disconnect();
   }, []);
-
   const chatkit = useChatKit({
     api: { getClientSecret },
     header: { enabled: false },
