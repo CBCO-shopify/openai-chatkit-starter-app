@@ -1,10 +1,8 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
 
 export function ChatKitPanel() {
-  const [hasTriggered, setHasTriggered] = useState(false);
-  
   const getClientSecret = useMemo(
     () => createClientSecretFetcher(workflowId),
     []
@@ -17,6 +15,16 @@ export function ChatKitPanel() {
     threadItemActions: {
       feedback: false,
       retry: false,
+    },
+    
+    startScreen: {
+      greeting: "G'day! I'm Trax, your Curtain & Blind Co assistant. How can I help?",
+      prompts: [
+        { label: "Help me choose a product", prompt: "Help me choose the right curtains or blinds for my home", icon: "search" },
+        { label: "Measuring guide", prompt: "How do I measure my windows for blinds or curtains?", icon: "write" },
+        { label: "Track my order", prompt: "I want to check my order status", icon: "bolt" },
+        { label: "Talk to a human", prompt: "I'd like to speak with a customer service representative", icon: "user" },
+      ],
     },
 
     onClientTool: async (toolCall) => {
@@ -86,22 +94,6 @@ export function ChatKitPanel() {
       return { error: "Unknown tool: " + toolCall.name };
     },
   });
-
-  useEffect(() => {
-    if (chatkit.ref?.current && !hasTriggered) {
-      setHasTriggered(true);
-      
-      setTimeout(async () => {
-        const element = chatkit.ref.current;
-        
-        try {
-          await element.sendUserMessage({ text: "hi" });
-        } catch (e) {
-          console.log("Auto-trigger error:", e.message);
-        }
-      }, 2000);
-    }
-  }, [chatkit.ref, hasTriggered]);
 
   return (
     <div
