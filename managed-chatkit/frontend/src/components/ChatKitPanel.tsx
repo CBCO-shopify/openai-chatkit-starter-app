@@ -57,34 +57,33 @@ export function ChatKitPanel() {
     sendAnalytics("conversation_start");
   }, []);
 
-  useEffect(() => {
+
+useEffect(() => {
     console.log("=== ChatKitPanel mounted - polling started ===");
 
     const checkForMessages = () => {
-      // Check for iframes
-      const iframes = document.querySelectorAll('iframe');
-      console.log("Found iframes:", iframes.length);
+      // Check what's actually in the document
+      const allArticles = document.querySelectorAll('article');
+      console.log("All articles in document:", allArticles.length);
       
-      let targetDocument: Document = document;
-      
-      // Try to access iframe content
-      iframes.forEach((iframe, index) => {
-        try {
-          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-          if (iframeDoc) {
-            const testArticles = iframeDoc.querySelectorAll('article');
-            console.log(`Iframe ${index} has ${testArticles.length} articles`);
-            if (testArticles.length > 0) {
-              targetDocument = iframeDoc;
-            }
-          }
-        } catch (e) {
-          console.log(`Iframe ${index} not accessible (cross-origin):`, e);
+      // Check for shadow roots
+      const allDivs = document.querySelectorAll('div');
+      let shadowRootCount = 0;
+      allDivs.forEach((div) => {
+        if (div.shadowRoot) {
+          shadowRootCount++;
+          const shadowArticles = div.shadowRoot.querySelectorAll('article');
+          console.log("Shadow root found with", shadowArticles.length, "articles");
         }
       });
+      console.log("Total shadow roots:", shadowRootCount);
+      
+      // Log first few elements to see what's there
+      const firstFewElements = document.body.innerHTML.substring(0, 1000);
+      console.log("Body start:", firstFewElements);
 
-      const userTurns = targetDocument.querySelectorAll('article[data-thread-turn="user"]');
-      const assistantTurns = targetDocument.querySelectorAll('article[data-thread-turn="assistant"]');
+      const userTurns = document.querySelectorAll('article[data-thread-turn="user"]');
+      const assistantTurns = document.querySelectorAll('article[data-thread-turn="assistant"]');
 
       console.log("Polling - User turns:", userTurns.length, "Assistant turns:", assistantTurns.length);
 
@@ -115,6 +114,7 @@ export function ChatKitPanel() {
 
     return () => clearInterval(interval);
   }, []);
+  
   const chatkit = useChatKit({
     api: { getClientSecret },
     header: { enabled: false },
