@@ -70,12 +70,15 @@ export function ChatKitPanel() {
       console.log("Client tool called:", toolCall.name, toolCall);
 
       if (toolCall.name === "create_gorgias_ticket") {
-        // Track escalation with user context
+        // Track escalation with customer details
         sendAnalytics("escalation", {
           tool_name: "create_gorgias_ticket",
           subject: toolCall.params.subject,
           summary: toolCall.params.summary,
           user_message: toolCall.params.summary,
+          customer_email: toolCall.params.customer_email,
+          customer_phone: toolCall.params.customer_phone,
+          customer_name: toolCall.params.customer_name,
         });
 
         try {
@@ -108,6 +111,8 @@ export function ChatKitPanel() {
             tool_name: "create_gorgias_ticket",
             error_message: error instanceof Error ? error.message : "Unknown error",
             user_message: toolCall.params.summary,
+            customer_email: toolCall.params.customer_email,
+            customer_phone: toolCall.params.customer_phone,
           });
 
           return {
@@ -119,10 +124,12 @@ export function ChatKitPanel() {
       }
 
       if (toolCall.name === "lookup_order") {
-        // Track order lookup
+        // Track order lookup with customer details
         sendAnalytics("tool_call", {
           tool_name: "lookup_order",
           user_message: `Order lookup: ${toolCall.params.order_number}`,
+          customer_email: toolCall.params.email,
+          order_number: toolCall.params.order_number,
         });
 
         try {
@@ -148,6 +155,8 @@ export function ChatKitPanel() {
             tool_name: "lookup_order",
             error_message: error instanceof Error ? error.message : "Unknown error",
             user_message: `Order lookup failed: ${toolCall.params.order_number}`,
+            customer_email: toolCall.params.email,
+            order_number: toolCall.params.order_number,
           });
 
           return {
