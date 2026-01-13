@@ -18,15 +18,6 @@ export function ChatKitPanel() {
       feedback: false,
       retry: false,
     },
-    
-    // Try theme option to inject CSS
-    theme: {
-      styles: `
-        [data-role="user-message"]:first-of-type {
-          display: none !important;
-        }
-      `
-    },
 
     onClientTool: async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall);
@@ -108,7 +99,7 @@ export function ChatKitPanel() {
         } catch (e) {
           console.log("Auto-trigger error:", e.message);
         }
-      }, 1000);
+      }, 2000);
     }
   }, [chatkit.ref, hasTriggered]);
 
