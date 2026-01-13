@@ -61,8 +61,30 @@ export function ChatKitPanel() {
     console.log("=== ChatKitPanel mounted - polling started ===");
 
     const checkForMessages = () => {
-      const userTurns = document.querySelectorAll('article[data-thread-turn="user"]');
-      const assistantTurns = document.querySelectorAll('article[data-thread-turn="assistant"]');
+      // Check for iframes
+      const iframes = document.querySelectorAll('iframe');
+      console.log("Found iframes:", iframes.length);
+      
+      let targetDocument: Document = document;
+      
+      // Try to access iframe content
+      iframes.forEach((iframe, index) => {
+        try {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (iframeDoc) {
+            const testArticles = iframeDoc.querySelectorAll('article');
+            console.log(`Iframe ${index} has ${testArticles.length} articles`);
+            if (testArticles.length > 0) {
+              targetDocument = iframeDoc;
+            }
+          }
+        } catch (e) {
+          console.log(`Iframe ${index} not accessible (cross-origin):`, e);
+        }
+      });
+
+      const userTurns = targetDocument.querySelectorAll('article[data-thread-turn="user"]');
+      const assistantTurns = targetDocument.querySelectorAll('article[data-thread-turn="assistant"]');
 
       console.log("Polling - User turns:", userTurns.length, "Assistant turns:", assistantTurns.length);
 
@@ -93,7 +115,6 @@ export function ChatKitPanel() {
 
     return () => clearInterval(interval);
   }, []);
-
   const chatkit = useChatKit({
     api: { getClientSecret },
     header: { enabled: false },
