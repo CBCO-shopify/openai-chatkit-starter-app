@@ -26,37 +26,16 @@ const sendAnalytics = async (eventType: string, data: Record<string, unknown> = 
   }
 };
 
-const logMessage = async (role: "user" | "assistant", content: string) => {
-  if (!content.trim()) return;
-  try {
-    await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message_id: crypto.randomUUID(),
-        session_id: getSessionId(),
-        role: role,
-        content: content,
-        timestamp: new Date().toISOString(),
-      }),
-    });
-  } catch (e) {
-    console.log("Message log error:", e);
-  }
-};
-
 export function ChatKitPanel() {
   const getClientSecret = useMemo(
     () => createClientSecretFetcher(workflowId),
     []
   );
 
-  const loggedMessagesRef = useRef<Set<string>>(new Set());
-
   useEffect(() => {
     sendAnalytics("conversation_start");
   }, []);
-  
+
   const chatkit = useChatKit({
     api: { getClientSecret },
     header: { enabled: false },
@@ -187,28 +166,8 @@ export function ChatKitPanel() {
         }
       }
 
-      if (toolCall.name === "log_session") {
-        try {
-          await fetch("https://n8n.curtainworld.net.au/webhook/log-session", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              session_id: getSessionId(),
-              timestamp: new Date().toISOString(),
-              summary: toolCall.params.summary,
-              transcript: toolCall.params.transcript,
-              topic_category: toolCall.params.topic_category,
-              outcome: toolCall.params.outcome,
-              customer_email: toolCall.params.customer_email || "",
-              customer_phone: toolCall.params.customer_phone || "",
-              customer_name: toolCall.params.customer_name || "",
-              escalated: toolCall.params.outcome === "escalated",
-            }),
-          });
-
       if (toolCall.name === "log_message") {
         try {
-          // Log user message
           await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -220,8 +179,7 @@ export function ChatKitPanel() {
               timestamp: new Date().toISOString(),
             }),
           });
-          
-          // Log assistant message
+
           await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -240,6 +198,25 @@ export function ChatKitPanel() {
           return { success: false };
         }
       }
+
+      if (toolCall.name === "log_session") {
+        try {
+          await fetch("https://n8n.curtainworld.net.au/webhook/log-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              session_id: getSessionId(),
+              timestamp: new Date().toISOString(),
+              summary: toolCall.params.summary,
+              transcript: toolCall.params.transcript,
+              topic_category: toolCall.params.topic_category,
+              outcome: toolCall.params.outcome,
+              customer_email: toolCall.params.customer_email || "",
+              customer_phone: toolCall.params.customer_phone || "",
+              customer_name: toolCall.params.customer_name || "",
+              escalated: toolCall.params.outcome === "escalated",
+            }),
+          });
 
           return { success: true };
         } catch (error) {
