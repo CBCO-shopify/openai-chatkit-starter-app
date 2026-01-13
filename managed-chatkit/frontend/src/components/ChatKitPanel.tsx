@@ -2,7 +2,6 @@ import { useMemo, useEffect, useRef } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
 
-// Get or create session ID
 const getSessionId = () => {
   if (!sessionStorage.getItem("trax_session")) {
     sessionStorage.setItem("trax_session", crypto.randomUUID());
@@ -10,7 +9,6 @@ const getSessionId = () => {
   return sessionStorage.getItem("trax_session")!;
 };
 
-// Analytics helper
 const sendAnalytics = async (eventType: string, data: Record<string, unknown> = {}) => {
   try {
     await fetch("https://n8n.curtainworld.net.au/webhook/chatbot-analytics", {
@@ -28,12 +26,6 @@ const sendAnalytics = async (eventType: string, data: Record<string, unknown> = 
   }
 };
 
-// Debug: confirm component is mounted
-  useEffect(() => {
-    console.log("=== ChatKitPanel mounted ===");
-  }, []);
-
-// Message logging helper
 const logMessage = async (role: "user" | "assistant", content: string) => {
   if (!content.trim()) return;
   try {
@@ -58,54 +50,50 @@ export function ChatKitPanel() {
     () => createClientSecretFetcher(workflowId),
     []
   );
-  
-  const chatContainerRef = useRef<HTMLDivElement>(null);
+
   const loggedMessagesRef = useRef<Set<string>>(new Set());
 
-  // Track conversation start
   useEffect(() => {
     sendAnalytics("conversation_start");
   }, []);
-// Polling to capture messages (searching entire document)
+
   useEffect(() => {
+    console.log("=== ChatKitPanel mounted - polling started ===");
+
     const checkForMessages = () => {
-      // Search entire document instead of just container
       const userTurns = document.querySelectorAll('article[data-thread-turn="user"]');
       const assistantTurns = document.querySelectorAll('article[data-thread-turn="assistant"]');
-      
+
       console.log("Polling - User turns:", userTurns.length, "Assistant turns:", assistantTurns.length);
-      
-      // Log user messages
+
       userTurns.forEach((turn) => {
         const content = turn.textContent?.replace('You said:', '').trim() || '';
         const messageHash = `user-${content.substring(0, 100)}-${content.length}`;
-        
+
         if (!content || loggedMessagesRef.current.has(messageHash)) return;
-        
+
         console.log("Logging user message:", content.substring(0, 50));
         loggedMessagesRef.current.add(messageHash);
         logMessage('user', content);
       });
-      
-      // Log assistant messages
+
       assistantTurns.forEach((turn) => {
         const content = turn.textContent?.trim() || '';
         const messageHash = `assistant-${content.substring(0, 100)}-${content.length}`;
-        
+
         if (!content || loggedMessagesRef.current.has(messageHash)) return;
-        
+
         console.log("Logging assistant message:", content.substring(0, 50));
         loggedMessagesRef.current.add(messageHash);
         logMessage('assistant', content);
       });
     };
 
-    // Check every 2 seconds
     const interval = setInterval(checkForMessages, 2000);
 
     return () => clearInterval(interval);
   }, []);
-  
+
   const chatkit = useChatKit({
     api: { getClientSecret },
     header: { enabled: false },
@@ -114,7 +102,7 @@ export function ChatKitPanel() {
       feedback: false,
       retry: false,
     },
-    
+
     startScreen: {
       greeting: "Hi there 👋",
       prompts: [
@@ -124,7 +112,7 @@ export function ChatKitPanel() {
         { label: "Something else", prompt: "I have a different question", icon: "circle-question" },
       ],
     },
-    
+
     theme: {
       colorScheme: "light",
       radius: "round",
@@ -176,7 +164,7 @@ export function ChatKitPanel() {
           };
         } catch (error) {
           console.error("Gorgias ticket error:", error);
-          
+
           sendAnalytics("error", {
             tool_name: "create_gorgias_ticket",
             error_message: error instanceof Error ? error.message : "Unknown error",
@@ -297,7 +285,7 @@ export function ChatKitPanel() {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflow: "hidden" }} ref={chatContainerRef}>
+      <div style={{ flex: 1, overflow: "hidden" }}>
         <ChatKit
           control={chatkit.control}
           style={{ height: "100%", width: "100%" }}
