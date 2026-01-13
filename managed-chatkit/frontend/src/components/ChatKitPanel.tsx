@@ -68,18 +68,15 @@ export function ChatKitPanel() {
     if (!container) return;
 
     const observer = new MutationObserver(() => {
-      // Find all message elements - adjust selectors based on ChatKit's actual DOM
       const messages = container.querySelectorAll('[data-role="user"], [data-role="assistant"], .chatkit-message, .message');
       
       messages.forEach((msg) => {
         const content = msg.textContent?.trim() || '';
         const messageHash = `${content.substring(0, 100)}-${content.length}`;
         
-        // Skip if already logged
         if (loggedMessagesRef.current.has(messageHash)) return;
         if (!content) return;
         
-        // Determine role from element attributes or classes
         const isUser = 
           msg.getAttribute('data-role') === 'user' ||
           msg.classList.contains('user') ||
@@ -310,4 +307,18 @@ export function ChatKitPanel() {
         style={{
           padding: "8px 16px",
           textAlign: "center",
-          fontSize:
+          fontSize: "11px",
+          backgroundColor: "white",
+          borderTop: "1px solid #eee",
+        }}
+      >
+        <div style={{ marginBottom: "4px", color: "var(--trax-green)" }}>
+          Tip: you can ask for a human any time.
+        </div>
+        <div style={{ color: "#999" }}>
+          Powered by The Curtain &amp; Blind Company
+        </div>
+      </div>
+    </div>
+  );
+}
