@@ -28,6 +28,11 @@ const sendAnalytics = async (eventType: string, data: Record<string, unknown> = 
   }
 };
 
+// Debug: confirm component is mounted
+  useEffect(() => {
+    console.log("=== ChatKitPanel mounted ===");
+  }, []);
+
 // Message logging helper
 const logMessage = async (role: "user" | "assistant", content: string) => {
   if (!content.trim()) return;
