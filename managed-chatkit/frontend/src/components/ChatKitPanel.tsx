@@ -30,6 +30,7 @@ const sendAnalytics = async (eventType: string, data: Record<string, unknown> = 
 
 // Message logging helper
 const logMessage = async (role: "user" | "assistant", content: string) => {
+  if (!content.trim()) return;
   try {
     await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
       method: "POST",
@@ -52,10 +53,59 @@ export function ChatKitPanel() {
     () => createClientSecretFetcher(workflowId),
     []
   );
+  
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const loggedMessagesRef = useRef<Set<string>>(new Set());
 
   // Track conversation start
   useEffect(() => {
     sendAnalytics("conversation_start");
+  }, []);
+
+  // DOM Observer to capture messages
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+
+    const observer = new MutationObserver(() => {
+      // Find all message elements - adjust selectors based on ChatKit's actual DOM
+      const messages = container.querySelectorAll('[data-role="user"], [data-role="assistant"], .chatkit-message, .message');
+      
+      messages.forEach((msg) => {
+        const content = msg.textContent?.trim() || '';
+        const messageHash = `${content.substring(0, 100)}-${content.length}`;
+        
+        // Skip if already logged
+        if (loggedMessagesRef.current.has(messageHash)) return;
+        if (!content) return;
+        
+        // Determine role from element attributes or classes
+        const isUser = 
+          msg.getAttribute('data-role') === 'user' ||
+          msg.classList.contains('user') ||
+          msg.classList.contains('chatkit-user-message') ||
+          msg.closest('[data-role="user"]') !== null;
+        
+        const isAssistant = 
+          msg.getAttribute('data-role') === 'assistant' ||
+          msg.classList.contains('assistant') ||
+          msg.classList.contains('chatkit-assistant-message') ||
+          msg.closest('[data-role="assistant"]') !== null;
+
+        if (isUser || isAssistant) {
+          loggedMessagesRef.current.add(messageHash);
+          logMessage(isUser ? 'user' : 'assistant', content);
+        }
+      });
+    });
+
+    observer.observe(container, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+
+    return () => observer.disconnect();
   }, []);
 
   const chatkit = useChatKit({
@@ -87,16 +137,6 @@ export function ChatKitPanel() {
           level: 2,
         },
       },
-    },
-
-    // Log user messages when sent
-    onUserMessage: async (message) => {
-      logMessage("user", message.content);
-    },
-
-    // Log assistant messages when received
-    onAssistantMessage: async (message) => {
-      logMessage("assistant", message.content);
     },
 
     onClientTool: async (toolCall) => {
@@ -259,7 +299,7 @@ export function ChatKitPanel() {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflow: "hidden" }}>
+      <div style={{ flex: 1, overflow: "hidden" }} ref={chatContainerRef}>
         <ChatKit
           control={chatkit.control}
           style={{ height: "100%", width: "100%" }}
@@ -270,18 +310,4 @@ export function ChatKitPanel() {
         style={{
           padding: "8px 16px",
           textAlign: "center",
-          fontSize: "11px",
-          backgroundColor: "white",
-          borderTop: "1px solid #eee",
-        }}
-      >
-        <div style={{ marginBottom: "4px", color: "var(--trax-green)" }}>
-          Tip: you can ask for a human any time.
-        </div>
-        <div style={{ color: "#999" }}>
-          Powered by The Curtain &amp; Blind Company
-        </div>
-      </div>
-    </div>
-  );
-}
+          fontSize:
