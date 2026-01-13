@@ -68,31 +68,30 @@ export function ChatKitPanel() {
     if (!container) return;
 
     const observer = new MutationObserver(() => {
-      const messages = container.querySelectorAll('[data-role="user"], [data-role="assistant"], .chatkit-message, .message');
+      // Find all message turns
+      const userTurns = container.querySelectorAll('article[data-thread-turn="user"]');
+      const assistantTurns = container.querySelectorAll('article[data-thread-turn="assistant"]');
       
-      messages.forEach((msg) => {
-        const content = msg.textContent?.trim() || '';
-        const messageHash = `${content.substring(0, 100)}-${content.length}`;
+      // Log user messages
+      userTurns.forEach((turn) => {
+        const content = turn.textContent?.replace('You said:', '').trim() || '';
+        const messageHash = `user-${content.substring(0, 100)}-${content.length}`;
         
-        if (loggedMessagesRef.current.has(messageHash)) return;
-        if (!content) return;
+        if (!content || loggedMessagesRef.current.has(messageHash)) return;
         
-        const isUser = 
-          msg.getAttribute('data-role') === 'user' ||
-          msg.classList.contains('user') ||
-          msg.classList.contains('chatkit-user-message') ||
-          msg.closest('[data-role="user"]') !== null;
+        loggedMessagesRef.current.add(messageHash);
+        logMessage('user', content);
+      });
+      
+      // Log assistant messages
+      assistantTurns.forEach((turn) => {
+        const content = turn.textContent?.trim() || '';
+        const messageHash = `assistant-${content.substring(0, 100)}-${content.length}`;
         
-        const isAssistant = 
-          msg.getAttribute('data-role') === 'assistant' ||
-          msg.classList.contains('assistant') ||
-          msg.classList.contains('chatkit-assistant-message') ||
-          msg.closest('[data-role="assistant"]') !== null;
-
-        if (isUser || isAssistant) {
-          loggedMessagesRef.current.add(messageHash);
-          logMessage(isUser ? 'user' : 'assistant', content);
-        }
+        if (!content || loggedMessagesRef.current.has(messageHash)) return;
+        
+        loggedMessagesRef.current.add(messageHash);
+        logMessage('assistant', content);
       });
     });
 
