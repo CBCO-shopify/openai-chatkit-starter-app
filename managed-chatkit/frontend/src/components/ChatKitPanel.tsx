@@ -20,10 +20,10 @@ export function ChatKitPanel() {
     startScreen: {
       greeting: "Hi there 👋",
       prompts: [
-        { label: "Help me choose", prompt: "Help me choose the right curtains or blinds for my home", icon: "search" },
-        { label: "Measuring guide", prompt: "How do I measure my windows for blinds or curtains?", icon: "write" },
-        { label: "Track my order", prompt: "I want to check on my order status", icon: "bolt" },
-        { label: "Talk to a human", prompt: "I'd like to speak with customer service", icon: "user" },
+        { label: "Help me choose", prompt: "Track my order", icon: "compass" },
+        { label: "Measuring guide", prompt: "Product help", icon: "search" },
+        { label: "Track my order", prompt: "Measure & Install", icon: "notebook-pencil" },
+        { label: "Talk to a human", prompt: "I'd like to speak with customer service", icon: "circle-question" },
       ],
     },
     
@@ -128,7 +128,7 @@ export function ChatKitPanel() {
         <div>
           <div style={{ fontWeight: 600, fontSize: "16px" }}>Traxine</div>
           <div style={{ fontSize: "12px", opacity: 0.9 }}>
-            C&amp;BCo&apos;s AI Assistant
+            C&amp;BCo&apos;s AI Assistant in training
           </div>
         </div>
       </div>
