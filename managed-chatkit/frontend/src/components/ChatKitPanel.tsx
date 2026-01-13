@@ -18,13 +18,25 @@ export function ChatKitPanel() {
     },
     
     startScreen: {
-      greeting: "G'day! I'm Trax, your Curtain & Blind Co assistant. How can I help?",
+      greeting: "Hi there 👋",
       prompts: [
-        { label: "Help me choose a product", prompt: "Help me choose the right curtains or blinds for my home", icon: "search" },
+        { label: "Help me choose", prompt: "Help me choose the right curtains or blinds for my home", icon: "search" },
         { label: "Measuring guide", prompt: "How do I measure my windows for blinds or curtains?", icon: "write" },
-        { label: "Track my order", prompt: "I want to check my order status", icon: "bolt" },
-        { label: "Talk to a human", prompt: "I'd like to speak with a customer service representative", icon: "user" },
+        { label: "Track my order", prompt: "I want to check on my order status", icon: "bolt" },
+        { label: "Talk to a human", prompt: "I'd like to speak with customer service", icon: "user" },
       ],
+    },
+    
+    theme: {
+      colorScheme: "light",
+      radius: "round",
+      density: "normal",
+      color: {
+        accent: {
+          primary: "#4A7C59",
+          level: 2,
+        },
+      },
     },
 
     onClientTool: async (toolCall) => {
