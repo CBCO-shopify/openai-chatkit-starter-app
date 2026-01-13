@@ -20,10 +20,10 @@ export function ChatKitPanel() {
     startScreen: {
       greeting: "Hi there 👋",
       prompts: [
-        { label: "Help me choose", prompt: "Track my order", icon: "compass" },
-        { label: "Measuring guide", prompt: "Product help", icon: "search" },
-        { label: "Track my order", prompt: "Measure & Install", icon: "notebook-pencil" },
-        { label: "Talk to a human", prompt: "I'd like to speak with customer service", icon: "circle-question" },
+        { label: "Order lookup", prompt: "I'd like to lookup my order", icon: "compass" },
+        { label: "Help me choose", prompt: "Help with product selections", icon: "search" },
+        { label: "Measure and Install", prompt: "Help with measuring and installation", icon: "notebook-pencil" },
+        { label: "Something else", prompt: "I have a different question", icon: "circle-question" },
       ],
     },
     
