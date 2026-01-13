@@ -70,7 +70,6 @@ export function ChatKitPanel() {
       console.log("Client tool called:", toolCall.name, toolCall);
 
       if (toolCall.name === "create_gorgias_ticket") {
-        // Track escalation with customer details
         sendAnalytics("escalation", {
           tool_name: "create_gorgias_ticket",
           subject: toolCall.params.subject,
@@ -124,7 +123,6 @@ export function ChatKitPanel() {
       }
 
       if (toolCall.name === "lookup_order") {
-        // Track order lookup with customer details
         sendAnalytics("tool_call", {
           tool_name: "lookup_order",
           user_message: `Order lookup: ${toolCall.params.order_number}`,
@@ -167,7 +165,32 @@ export function ChatKitPanel() {
         }
       }
 
-      // Track unknown tools
+      if (toolCall.name === "log_session") {
+        try {
+          await fetch("https://n8n.curtainworld.net.au/webhook/log-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              session_id: sessionStorage.getItem("trax_session"),
+              timestamp: new Date().toISOString(),
+              summary: toolCall.params.summary,
+              transcript: toolCall.params.transcript,
+              topic_category: toolCall.params.topic_category,
+              outcome: toolCall.params.outcome,
+              customer_email: toolCall.params.customer_email || "",
+              customer_phone: toolCall.params.customer_phone || "",
+              customer_name: toolCall.params.customer_name || "",
+              escalated: toolCall.params.outcome === "escalated",
+            }),
+          });
+
+          return { success: true };
+        } catch (error) {
+          console.error("Log session error:", error);
+          return { success: false };
+        }
+      }
+
       sendAnalytics("tool_call", {
         tool_name: toolCall.name,
         user_message: "Unknown tool invoked",
