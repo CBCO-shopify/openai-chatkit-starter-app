@@ -56,64 +56,6 @@ export function ChatKitPanel() {
   useEffect(() => {
     sendAnalytics("conversation_start");
   }, []);
-
-
-useEffect(() => {
-    console.log("=== ChatKitPanel mounted - polling started ===");
-
-    const checkForMessages = () => {
-      // Check what's actually in the document
-      const allArticles = document.querySelectorAll('article');
-      console.log("All articles in document:", allArticles.length);
-      
-      // Check for shadow roots
-      const allDivs = document.querySelectorAll('div');
-      let shadowRootCount = 0;
-      allDivs.forEach((div) => {
-        if (div.shadowRoot) {
-          shadowRootCount++;
-          const shadowArticles = div.shadowRoot.querySelectorAll('article');
-          console.log("Shadow root found with", shadowArticles.length, "articles");
-        }
-      });
-      console.log("Total shadow roots:", shadowRootCount);
-      
-      // Log first few elements to see what's there
-      const firstFewElements = document.body.innerHTML.substring(0, 1000);
-      console.log("Body start:", firstFewElements);
-
-      const userTurns = document.querySelectorAll('article[data-thread-turn="user"]');
-      const assistantTurns = document.querySelectorAll('article[data-thread-turn="assistant"]');
-
-      console.log("Polling - User turns:", userTurns.length, "Assistant turns:", assistantTurns.length);
-
-      userTurns.forEach((turn) => {
-        const content = turn.textContent?.replace('You said:', '').trim() || '';
-        const messageHash = `user-${content.substring(0, 100)}-${content.length}`;
-
-        if (!content || loggedMessagesRef.current.has(messageHash)) return;
-
-        console.log("Logging user message:", content.substring(0, 50));
-        loggedMessagesRef.current.add(messageHash);
-        logMessage('user', content);
-      });
-
-      assistantTurns.forEach((turn) => {
-        const content = turn.textContent?.trim() || '';
-        const messageHash = `assistant-${content.substring(0, 100)}-${content.length}`;
-
-        if (!content || loggedMessagesRef.current.has(messageHash)) return;
-
-        console.log("Logging assistant message:", content.substring(0, 50));
-        loggedMessagesRef.current.add(messageHash);
-        logMessage('assistant', content);
-      });
-    };
-
-    const interval = setInterval(checkForMessages, 2000);
-
-    return () => clearInterval(interval);
-  }, []);
   
   const chatkit = useChatKit({
     api: { getClientSecret },
@@ -263,6 +205,41 @@ useEffect(() => {
               escalated: toolCall.params.outcome === "escalated",
             }),
           });
+
+      if (toolCall.name === "log_message") {
+        try {
+          // Log user message
+          await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message_id: crypto.randomUUID(),
+              session_id: getSessionId(),
+              role: "user",
+              content: toolCall.params.user_message,
+              timestamp: new Date().toISOString(),
+            }),
+          });
+          
+          // Log assistant message
+          await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message_id: crypto.randomUUID(),
+              session_id: getSessionId(),
+              role: "assistant",
+              content: toolCall.params.assistant_message,
+              timestamp: new Date().toISOString(),
+            }),
+          });
+
+          return { success: true };
+        } catch (error) {
+          console.error("Log message error:", error);
+          return { success: false };
+        }
+      }
 
           return { success: true };
         } catch (error) {
