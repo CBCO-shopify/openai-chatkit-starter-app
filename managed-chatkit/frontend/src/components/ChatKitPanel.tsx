@@ -61,28 +61,14 @@ export function ChatKitPanel() {
   useEffect(() => {
     sendAnalytics("conversation_start");
   }, []);
-
-  // DOM Observer to capture messages
+// Polling to capture messages (more reliable than MutationObserver for ChatKit)
   useEffect(() => {
-    const container = chatContainerRef.current;
-    console.log("Observer setup - container:", container);
-    if (!container) return;
-
-    const observer = new MutationObserver(() => {
-      console.log("Mutation detected!");
-      
-      // Log what we can find
-      const allArticles = container.querySelectorAll('article');
-      console.log("Found articles:", allArticles.length);
+    const checkForMessages = () => {
+      const container = chatContainerRef.current;
+      if (!container) return;
       
       const userTurns = container.querySelectorAll('article[data-thread-turn="user"]');
       const assistantTurns = container.querySelectorAll('article[data-thread-turn="assistant"]');
-      console.log("User turns:", userTurns.length, "Assistant turns:", assistantTurns.length);
-      
-      // If no articles found, log container contents
-      if (allArticles.length === 0) {
-        console.log("Container innerHTML (first 500 chars):", container.innerHTML.substring(0, 500));
-      }
       
       // Log user messages
       userTurns.forEach((turn) => {
@@ -107,16 +93,17 @@ export function ChatKitPanel() {
         loggedMessagesRef.current.add(messageHash);
         logMessage('assistant', content);
       });
-    });
+    };
 
-    observer.observe(container, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    });
+    // Check every 2 seconds
+    const interval = setInterval(checkForMessages, 2000);
+    
+    // Also check immediately
+    checkForMessages();
 
-    return () => observer.disconnect();
+    return () => clearInterval(interval);
   }, []);
+  
   const chatkit = useChatKit({
     api: { getClientSecret },
     header: { enabled: false },
