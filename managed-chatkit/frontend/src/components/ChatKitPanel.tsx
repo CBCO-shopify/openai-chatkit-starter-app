@@ -1,26 +1,49 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
+
+// Get or create session ID
+const getSessionId = () => {
+  if (!sessionStorage.getItem("trax_session")) {
+    sessionStorage.setItem("trax_session", crypto.randomUUID());
+  }
+  return sessionStorage.getItem("trax_session")!;
+};
 
 // Analytics helper
 const sendAnalytics = async (eventType: string, data: Record<string, unknown> = {}) => {
   try {
-    if (!sessionStorage.getItem("trax_session")) {
-      sessionStorage.setItem("trax_session", crypto.randomUUID());
-    }
-    
     await fetch("https://n8n.curtainworld.net.au/webhook/chatbot-analytics", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         event_type: eventType,
         timestamp: new Date().toISOString(),
-        session_id: sessionStorage.getItem("trax_session"),
+        session_id: getSessionId(),
         ...data,
       }),
     });
   } catch (e) {
     console.log("Analytics error:", e);
+  }
+};
+
+// Message logging helper
+const logMessage = async (role: "user" | "assistant", content: string) => {
+  try {
+    await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message_id: crypto.randomUUID(),
+        session_id: getSessionId(),
+        role: role,
+        content: content,
+        timestamp: new Date().toISOString(),
+      }),
+    });
+  } catch (e) {
+    console.log("Message log error:", e);
   }
 };
 
@@ -64,6 +87,16 @@ export function ChatKitPanel() {
           level: 2,
         },
       },
+    },
+
+    // Log user messages when sent
+    onUserMessage: async (message) => {
+      logMessage("user", message.content);
+    },
+
+    // Log assistant messages when received
+    onAssistantMessage: async (message) => {
+      logMessage("assistant", message.content);
     },
 
     onClientTool: async (toolCall) => {
@@ -171,7 +204,7 @@ export function ChatKitPanel() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              session_id: sessionStorage.getItem("trax_session"),
+              session_id: getSessionId(),
               timestamp: new Date().toISOString(),
               summary: toolCall.params.summary,
               transcript: toolCall.params.transcript,
