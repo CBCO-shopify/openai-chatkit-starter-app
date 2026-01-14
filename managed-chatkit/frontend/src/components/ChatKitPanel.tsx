@@ -222,6 +222,32 @@ export function ChatKitPanel() {
               escalated: toolCall.params.outcome === "escalated",
             }),
           });
+          
+      if (toolCall.name === "get_variant_id") {
+  try {
+    const response = await fetch(
+      "https://n8n.curtainworld.net.au/webhook/get-variant-id",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_id: toolCall.params.product_id,
+          color_name: toolCall.params.color_name,
+        }),
+      }
+    );
+
+    if (!response.ok) throw new Error("Failed to get variant ID");
+
+    return await response.json();
+  } catch (error) {
+    console.error("Get variant ID error:", error);
+    return {
+      success: false,
+      message: "Unable to retrieve variant ID. Please try again.",
+    };
+  }
+}
 
           return { success: true };
         } catch (error) {
