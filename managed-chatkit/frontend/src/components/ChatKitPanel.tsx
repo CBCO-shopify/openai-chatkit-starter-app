@@ -231,30 +231,38 @@ export function ChatKitPanel() {
       }
 
       if (toolCall.name === "get_variant_id") {
-        try {
-          const response = await fetch(
-            "https://n8n.curtainworld.net.au/webhook/get-variant-id",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                product_id: toolCall.params.product_id,
-                color_name: toolCall.params.color_name || toolCall.params.color,
-              }),
-            }
-          );
-
-          if (!response.ok) throw new Error("Failed to get variant ID");
-
-          return await response.json();
-        } catch (error) {
-          console.error("Get variant ID error:", error);
-          return {
-            success: false,
-            message: "Unable to retrieve variant ID. Please try again.",
-          };
-        }
+  console.log("get_variant_id handler entered");
+  console.log("Params:", toolCall.params);
+  
+  try {
+    console.log("Making fetch request to n8n...");
+    const response = await fetch(
+      "https://n8n.curtainworld.net.au/webhook/get-variant-id",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_id: toolCall.params.product_id,
+          color_name: toolCall.params.color_name || toolCall.params.color,
+        }),
       }
+    );
+
+    console.log("Fetch response status:", response.status);
+
+    if (!response.ok) throw new Error("Failed to get variant ID");
+
+    const data = await response.json();
+    console.log("Response data:", data);
+    return data;
+  } catch (error) {
+    console.error("Get variant ID error:", error);
+    return {
+      success: false,
+      message: "Unable to retrieve variant ID. Please try again.",
+    };
+  }
+}
 
       if (toolCall.name === "get_shopify_cart_id") {
         const cartId = getCartIdFromUrl();
