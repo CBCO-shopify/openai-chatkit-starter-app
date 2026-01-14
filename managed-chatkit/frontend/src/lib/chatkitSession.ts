@@ -9,6 +9,19 @@ export const workflowId = (() => {
   return id;
 })();
 
+// Persistent user ID - survives browser close
+export const getUserId = (): string => {
+  const storageKey = "trax_user_id";
+  let userId = localStorage.getItem(storageKey);
+  
+  if (!userId) {
+    userId = "user_" + crypto.randomUUID();
+    localStorage.setItem(storageKey, userId);
+  }
+  
+  return userId;
+};
+
 // Extract cartId from URL parameters
 export const getCartIdFromUrl = (): string | null => {
   if (typeof window === "undefined") return null;
@@ -23,15 +36,15 @@ export function createClientSecretFetcher(
   return async (currentSecret: string | null) => {
     if (currentSecret) return currentSecret;
     
-    // Get cart ID from URL
-    const cartId = getCartIdFromUrl();
+    // Get persistent user ID
+    const userId = getUserId();
     
     const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
         workflow: { id: workflow },
-        cartId: cartId  // Pass cart ID to n8n
+        userId: userId
       }),
     });
     
