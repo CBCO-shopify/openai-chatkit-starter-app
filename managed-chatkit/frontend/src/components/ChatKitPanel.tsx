@@ -8,12 +8,26 @@ const getCartIdFromUrl = (): string | null => {
 };
 
 const getSessionId = () => {
+  // Session ID is per-conversation (resets on page refresh)
+  // This is separate from user ID which persists
   if (!sessionStorage.getItem("trax_session")) {
     sessionStorage.setItem("trax_session", crypto.randomUUID());
   }
   return sessionStorage.getItem("trax_session")!;
 };
 
+// Add this new function to get the persistent user ID
+const getUserId = (): string => {
+  const storageKey = "trax_user_id";
+  let userId = localStorage.getItem(storageKey);
+  
+  if (!userId) {
+    userId = "user_" + crypto.randomUUID();
+    localStorage.setItem(storageKey, userId);
+  }
+  
+  return userId;
+};
 const sendAnalytics = async (eventType: string, data: Record<string, unknown> = {}) => {
   try {
     await fetch("https://n8n.curtainworld.net.au/webhook/chatbot-analytics", {
