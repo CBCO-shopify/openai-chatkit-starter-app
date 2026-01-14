@@ -2,6 +2,11 @@ import { useMemo, useEffect, useRef } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
 
+const getCartIdFromUrl = (): string | null => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("cartId");
+};
+
 const getSessionId = () => {
   if (!sessionStorage.getItem("trax_session")) {
     sessionStorage.setItem("trax_session", crypto.randomUUID());
@@ -224,6 +229,24 @@ export function ChatKitPanel() {
           return { success: false };
         }
       }
+
+      if (toolCall.name === "get_shopify_cart_id") {
+  const cartId = getCartIdFromUrl();
+  
+  if (cartId && cartId !== "null" && cartId !== "") {
+    return {
+      success: true,
+      cart_id: cartId,
+      message: "Cart ID retrieved successfully. Use this ID with get_cart and update_cart tools."
+    };
+  } else {
+    return {
+      success: false,
+      cart_id: null,
+      message: "No cart ID available. The customer may not have an active cart session."
+    };
+  }
+}
 
       sendAnalytics("tool_call", {
         tool_name: toolCall.name,
