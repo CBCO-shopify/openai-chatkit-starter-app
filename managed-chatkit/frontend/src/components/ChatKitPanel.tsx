@@ -1,5 +1,6 @@
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
+import type { ChatKitMessage } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
 
 const getCartIdFromUrl = (): string | null => {
@@ -9,14 +10,12 @@ const getCartIdFromUrl = (): string | null => {
 
 const getSessionId = () => {
   // Session ID is per-conversation (resets on page refresh)
-  // This is separate from user ID which persists
   if (!sessionStorage.getItem("trax_session")) {
     sessionStorage.setItem("trax_session", crypto.randomUUID());
   }
   return sessionStorage.getItem("trax_session")!;
 };
 
-// Add this new function to get the persistent user ID
 const getUserId = (): string => {
   const storageKey = "trax_user_id";
   let userId = localStorage.getItem(storageKey);
@@ -28,6 +27,7 @@ const getUserId = (): string => {
   
   return userId;
 };
+
 const sendAnalytics = async (eventType: string, data: Record<string, unknown> = {}) => {
   try {
     await fetch("https://n8n.curtainworld.net.au/webhook/chatbot-analytics", {
@@ -45,11 +45,52 @@ const sendAnalytics = async (eventType: string, data: Record<string, unknown> = 
   }
 };
 
+// ============================================
+// FRONTEND-DRIVEN MESSAGE LOGGING
+// ============================================
+const logMessageExchange = async (userMessage: string, assistantMessage: string) => {
+  const sessionId = getSessionId();
+  
+  try {
+    // Log user message
+    await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message_id: crypto.randomUUID(),
+        session_id: sessionId,
+        role: "user",
+        content: userMessage,
+        timestamp: new Date().toISOString(),
+      }),
+    });
+
+    // Log assistant message
+    await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message_id: crypto.randomUUID(),
+        session_id: sessionId,
+        role: "assistant",
+        content: assistantMessage,
+        timestamp: new Date().toISOString(),
+      }),
+    });
+  } catch (e) {
+    console.error("Message logging error:", e);
+  }
+};
+
 export function ChatKitPanel() {
   const getClientSecret = useMemo(
     () => createClientSecretFetcher(workflowId),
     []
   );
+
+  // Track messages to detect new exchanges
+  const [messages, setMessages] = useState<ChatKitMessage[]>([]);
+  const lastLoggedIndexRef = useRef(-1);
 
   useEffect(() => {
     sendAnalytics("conversation_start");
@@ -185,98 +226,42 @@ export function ChatKitPanel() {
         }
       }
 
-      if (toolCall.name === "log_message") {
-        try {
-          await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              message_id: crypto.randomUUID(),
-              session_id: getSessionId(),
-              role: "user",
-              content: toolCall.params.user_message,
-              timestamp: new Date().toISOString(),
-            }),
-          });
-
-          await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              message_id: crypto.randomUUID(),
-              session_id: getSessionId(),
-              role: "assistant",
-              content: toolCall.params.assistant_message,
-              timestamp: new Date().toISOString(),
-            }),
-          });
-
-          return { success: true };
-        } catch (error) {
-          console.error("Log message error:", error);
-          return { success: false };
-        }
-      }
-
-      if (toolCall.name === "log_session") {
-        try {
-          await fetch("https://n8n.curtainworld.net.au/webhook/log-session", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              session_id: getSessionId(),
-              timestamp: new Date().toISOString(),
-              summary: toolCall.params.summary,
-              transcript: toolCall.params.transcript,
-              topic_category: toolCall.params.topic_category,
-              outcome: toolCall.params.outcome,
-              customer_email: toolCall.params.customer_email || "",
-              customer_phone: toolCall.params.customer_phone || "",
-              customer_name: toolCall.params.customer_name || "",
-              escalated: toolCall.params.outcome === "escalated",
-            }),
-          });
-
-          return { success: true };
-        } catch (error) {
-          console.error("Log session error:", error);
-          return { success: false };
-        }
-      }
+      // REMOVED: log_message and log_session tools
+      // Frontend now handles this automatically
 
       if (toolCall.name === "get_variant_id") {
-  console.log("get_variant_id handler entered");
-  console.log("Params:", toolCall.params);
-  
-  try {
-    console.log("Making fetch request to n8n...");
-    const response = await fetch(
-      "https://n8n.curtainworld.net.au/webhook/get-variant-id",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          product_id: toolCall.params.product_id,
-          color_name: toolCall.params.color_name || toolCall.params.color,
-        }),
+        console.log("get_variant_id handler entered");
+        console.log("Params:", toolCall.params);
+        
+        try {
+          console.log("Making fetch request to n8n...");
+          const response = await fetch(
+            "https://n8n.curtainworld.net.au/webhook/get-variant-id",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                product_id: toolCall.params.product_id,
+                color_name: toolCall.params.color_name || toolCall.params.color,
+              }),
+            }
+          );
+
+          console.log("Fetch response status:", response.status);
+
+          if (!response.ok) throw new Error("Failed to get variant ID");
+
+          const data = await response.json();
+          console.log("Response data:", data);
+          return data;
+        } catch (error) {
+          console.error("Get variant ID error:", error);
+          return {
+            success: false,
+            message: "Unable to retrieve variant ID. Please try again.",
+          };
+        }
       }
-    );
-
-    console.log("Fetch response status:", response.status);
-
-    if (!response.ok) throw new Error("Failed to get variant ID");
-
-    const data = await response.json();
-    console.log("Response data:", data);
-    return data;
-  } catch (error) {
-    console.error("Get variant ID error:", error);
-    return {
-      success: false,
-      message: "Unable to retrieve variant ID. Please try again.",
-    };
-  }
-}
 
       if (toolCall.name === "get_shopify_cart_id") {
         const cartId = getCartIdFromUrl();
@@ -304,6 +289,44 @@ export function ChatKitPanel() {
       return { error: "Unknown tool: " + toolCall.name };
     },
   });
+
+  // ============================================
+  // AUTOMATIC MESSAGE LOGGING
+  // Watch for new messages and log exchanges
+  // ============================================
+  useEffect(() => {
+    // Get messages from ChatKit control
+    const currentMessages = chatkit.control.messages || [];
+    
+    // Find new user-assistant exchanges
+    for (let i = lastLoggedIndexRef.current + 1; i < currentMessages.length; i++) {
+      const msg = currentMessages[i];
+      
+      // Look for assistant responses (which come after user messages)
+      if (msg.role === "assistant" && i > 0) {
+        const previousMsg = currentMessages[i - 1];
+        
+        if (previousMsg.role === "user") {
+          // Found a user-assistant exchange
+          const userContent = previousMsg.content
+            .filter((c: any) => c.type === "text")
+            .map((c: any) => c.text)
+            .join(" ");
+            
+          const assistantContent = msg.content
+            .filter((c: any) => c.type === "text")
+            .map((c: any) => c.text)
+            .join(" ");
+          
+          // Log this exchange
+          if (userContent && assistantContent) {
+            logMessageExchange(userContent, assistantContent);
+            lastLoggedIndexRef.current = i;
+          }
+        }
+      }
+    }
+  }, [chatkit.control.messages]);
 
   return (
     <div
