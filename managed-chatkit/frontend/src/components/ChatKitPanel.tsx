@@ -1,6 +1,5 @@
 import { useMemo, useEffect, useRef } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
-import type { ChatKitMessage } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
 
 const getCartIdFromUrl = (): string | null => {
@@ -70,40 +69,16 @@ const logMessage = async (role: "user" | "assistant", content: string) => {
   }
 };
 
-// Extract text content from ChatKit message
-const extractMessageText = (message: any): string => {
-  if (!message) return "";
-  
-  // Try different possible structures
-  if (typeof message.content === "string") {
-    return message.content;
-  }
-  
-  if (Array.isArray(message.content)) {
-    return message.content
-      .filter((c: any) => c.type === "text" && c.text)
-      .map((c: any) => c.text)
-      .join(" ");
-  }
-  
-  if (message.text) {
-    return message.text;
-  }
-  
-  return "";
-};
-
 export function ChatKitPanel() {
   const getClientSecret = useMemo(
     () => createClientSecretFetcher(workflowId),
     []
   );
 
-  // Track logged messages to avoid duplicates
-  const loggedMessageIds = useRef<Set<string>>(new Set());
   const conversationRef = useRef<string[]>([]);
   const hasEscalatedRef = useRef(false);
-  const debugLoggedRef = useRef(false);
+  const loggedMessagesRef = useRef<Set<string>>(new Set());
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     sendAnalytics("conversation_start");
@@ -129,6 +104,97 @@ export function ChatKitPanel() {
     
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  // ============================================
+  // DOM OBSERVATION FOR MESSAGE LOGGING
+  // ============================================
+  useEffect(() => {
+    console.log("[Trax] Setting up DOM observer...");
+    
+    const processMessages = () => {
+      const container = chatContainerRef.current;
+      if (!container) return;
+
+      // Find all message elements - ChatKit uses data attributes or specific classes
+      // We'll look for common patterns
+      const messageSelectors = [
+        '[data-role="user"]',
+        '[data-role="assistant"]',
+        '[class*="message"]',
+        '[class*="Message"]',
+        '[class*="thread-item"]',
+        '[class*="ThreadItem"]',
+      ];
+
+      let messageElements: Element[] = [];
+      
+      for (const selector of messageSelectors) {
+        const elements = container.querySelectorAll(selector);
+        if (elements.length > 0) {
+          console.log(`[Trax] Found ${elements.length} elements with selector: ${selector}`);
+          messageElements = Array.from(elements);
+          break;
+        }
+      }
+
+      // If no specific selectors work, look for the thread container
+      if (messageElements.length === 0) {
+        // Debug: log what we can find
+        console.log("[Trax] DEBUG - Container children:", container.innerHTML.substring(0, 500));
+      }
+
+      messageElements.forEach((el, index) => {
+        const text = el.textContent?.trim() || "";
+        const messageKey = `${index}-${text.substring(0, 50)}`;
+        
+        if (text && !loggedMessagesRef.current.has(messageKey)) {
+          // Determine role from element attributes or position
+          const role = el.getAttribute("data-role") || 
+                      (el.className.includes("user") ? "user" : "assistant");
+          
+          console.log(`[Trax] Found message (${role}):`, text.substring(0, 50));
+          loggedMessagesRef.current.add(messageKey);
+          
+          // Log it
+          logMessage(role as "user" | "assistant", text);
+          conversationRef.current.push(`${role === "user" ? "User" : "Assistant"}: ${text}`);
+        }
+      });
+    };
+
+    // Set up MutationObserver to watch for new messages
+    const observer = new MutationObserver((mutations) => {
+      // Check if any mutations added nodes
+      const hasNewNodes = mutations.some(m => m.addedNodes.length > 0);
+      if (hasNewNodes) {
+        console.log("[Trax] DOM mutation detected - checking for new messages");
+        // Small delay to let content render
+        setTimeout(processMessages, 500);
+      }
+    });
+
+    // Start observing once container is available
+    const startObserving = () => {
+      const container = chatContainerRef.current;
+      if (container) {
+        console.log("[Trax] Starting DOM observation on container");
+        observer.observe(container, {
+          childList: true,
+          subtree: true,
+          characterData: true,
+        });
+        // Initial scan
+        setTimeout(processMessages, 1000);
+      } else {
+        console.log("[Trax] Container not ready, retrying...");
+        setTimeout(startObserving, 500);
+      }
+    };
+
+    startObserving();
+
+    return () => observer.disconnect();
   }, []);
 
   const chatkit = useChatKit({
@@ -324,78 +390,6 @@ export function ChatKitPanel() {
     },
   });
 
-  // ============================================
-  // DEBUG: Explore chatkit.control structure
-  // ============================================
-  useEffect(() => {
-    console.log("[Trax] Starting message polling...");
-    
-    const pollInterval = setInterval(() => {
-      // Debug: Log the entire control object structure (only once after messages exist)
-      if (!debugLoggedRef.current && chatkit.control) {
-        console.log("[Trax] DEBUG - chatkit.control keys:", Object.keys(chatkit.control));
-        console.log("[Trax] DEBUG - chatkit.control:", chatkit.control);
-        
-        // Check for common property names
-        const possibleProps = ['messages', 'thread', 'conversation', 'history', 'items', 'state'];
-        possibleProps.forEach(prop => {
-          if ((chatkit.control as any)[prop]) {
-            console.log(`[Trax] DEBUG - Found property '${prop}':`, (chatkit.control as any)[prop]);
-          }
-        });
-        
-        debugLoggedRef.current = true;
-      }
-      
-      // Try multiple possible paths to messages
-      const control = chatkit.control as any;
-      let messages: any[] | null = null;
-      
-      // Try different possible paths
-      if (control?.messages && Array.isArray(control.messages)) {
-        messages = control.messages;
-        console.log("[Trax] Found messages at control.messages");
-      } else if (control?.thread?.messages && Array.isArray(control.thread.messages)) {
-        messages = control.thread.messages;
-        console.log("[Trax] Found messages at control.thread.messages");
-      } else if (control?.state?.messages && Array.isArray(control.state.messages)) {
-        messages = control.state.messages;
-        console.log("[Trax] Found messages at control.state.messages");
-      }
-      
-      if (!messages) {
-        return;
-      }
-
-      console.log("[Trax] Poll - messages count:", messages.length);
-
-      for (const message of messages) {
-        // Create unique ID for this message
-        const messageId = message.id || `${message.role}-${JSON.stringify(message).substring(0, 50)}`;
-        
-        // Skip if already logged
-        if (loggedMessageIds.current.has(messageId)) {
-          continue;
-        }
-
-        const text = extractMessageText(message);
-        
-        // Only log if message has content
-        if (text && (message.role === "user" || message.role === "assistant")) {
-          console.log(`[Trax] New ${message.role} message detected:`, text.substring(0, 30));
-          logMessage(message.role, text);
-          loggedMessageIds.current.add(messageId);
-          
-          // Add to transcript
-          const prefix = message.role === "user" ? "User" : "Assistant";
-          conversationRef.current.push(`${prefix}: ${text}`);
-        }
-      }
-    }, 2000);
-
-    return () => clearInterval(pollInterval);
-  }, [chatkit.control]);
-
   return (
     <div
       style={{
@@ -422,7 +416,7 @@ export function ChatKitPanel() {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflow: "hidden" }}>
+      <div ref={chatContainerRef} style={{ flex: 1, overflow: "hidden" }}>
         <ChatKit
           control={chatkit.control}
           style={{ height: "100%", width: "100%" }}
