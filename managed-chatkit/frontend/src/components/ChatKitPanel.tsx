@@ -66,7 +66,6 @@ export function ChatKitPanel() {
       if (userText) {
         console.log('[Trax] User message:', userText);
         
-        // Log to Airtable
         fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -81,10 +80,11 @@ export function ChatKitPanel() {
       }
     }
     
-    // Capture thread ID
+    // Capture thread ID and store it
     if (eventType === 'thread.change' && eventData?.threadId) {
       const threadId = eventData.threadId;
       console.log('[Trax] Thread ID captured:', threadId);
+      sessionStorage.setItem('trax_thread_id', threadId);
       
       fetch("https://n8n.curtainworld.net.au/webhook/chatbot-analytics", {
         method: "POST",
@@ -96,6 +96,24 @@ export function ChatKitPanel() {
           timestamp: new Date().toISOString(),
         }),
       }).catch(e => console.error('[Trax] Failed to log thread:', e));
+    }
+    
+    // On response.end, fetch assistant message from OpenAI
+    if (eventType === 'response.end') {
+      const threadId = sessionStorage.getItem('trax_thread_id');
+      if (threadId) {
+        console.log('[Trax] Response ended, fetching assistant message...');
+        
+        fetch("https://n8n.curtainworld.net.au/webhook/fetch-assistant-message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: getSessionId(),
+            thread_id: threadId,
+            timestamp: new Date().toISOString(),
+          }),
+        }).catch(e => console.error('[Trax] Failed to fetch assistant message:', e));
+      }
     }
   }
 };
