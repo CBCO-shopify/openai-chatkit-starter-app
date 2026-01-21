@@ -53,6 +53,21 @@ export function ChatKitPanel() {
   const hasEscalatedRef = useRef(false);
 
   useEffect(() => {
+    // Listen for ChatKit postMessage events
+const handleMessage = (event: MessageEvent) => {
+  // Only accept messages from OpenAI
+  if (!event.origin.includes('openai.com')) return;
+  
+  console.log('[Trax] PostMessage received:', event.data);
+  
+  // Check if it contains thread info
+  if (event.data?.threadId || event.data?.activeThread) {
+    console.log('[Trax] Thread ID found:', event.data.threadId || event.data.activeThread);
+  }
+};
+
+window.addEventListener('message', handleMessage);
+    
     sendAnalytics("conversation_start");
     console.log("[Trax] Session started:", getSessionId());
     
@@ -74,8 +89,10 @@ export function ChatKitPanel() {
     };
     
     window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
+    return () => {
+  window.removeEventListener("beforeunload", handleBeforeUnload);
+  window.removeEventListener('message', handleMessage);
+};
 
   const chatkit = useChatKit({
     api: { getClientSecret },
