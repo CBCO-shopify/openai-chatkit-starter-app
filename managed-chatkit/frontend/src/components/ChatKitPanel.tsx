@@ -60,8 +60,26 @@ export function ChatKitPanel() {
   if (event.data?.__oaiChatKit && Array.isArray(event.data.data)) {
     const [eventType, eventData] = event.data.data;
     
-    // Log ALL events with full data
-    console.log('[Trax] Event:', eventType, JSON.stringify(eventData, null, 2));
+    // Capture user message from composer.submit
+    if (eventType === 'log' && eventData?.name === 'composer.submit') {
+      const userText = eventData.data?.text?.[0]?.text;
+      if (userText) {
+        console.log('[Trax] User message:', userText);
+        
+        // Log to Airtable
+        fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message_id: crypto.randomUUID(),
+            session_id: getSessionId(),
+            role: "user",
+            content: userText,
+            timestamp: new Date().toISOString(),
+          }),
+        }).catch(e => console.error('[Trax] Failed to log message:', e));
+      }
+    }
     
     // Capture thread ID
     if (eventType === 'thread.change' && eventData?.threadId) {
