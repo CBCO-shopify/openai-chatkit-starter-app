@@ -58,7 +58,7 @@ export function ChatKitPanel() {
   if (!event.origin.includes('openai.com')) return;
   
   // Check for ChatKit events
-  if (event.data?.__oaiChatKit && event.data.data) {
+  if (event.data?.__oaiChatKit && Array.isArray(event.data.data)) {
     const [eventType, eventData] = event.data.data;
     
     // Capture thread ID when thread is created/changed
