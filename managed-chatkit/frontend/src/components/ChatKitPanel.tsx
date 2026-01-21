@@ -71,8 +71,13 @@ const logMessage = async (role: "user" | "assistant", content: string) => {
 };
 
 // Extract text content from ChatKit message
-const extractMessageText = (message: ChatKitMessage): string => {
-  if (!message.content) return "";
+const extractMessageText = (message: any): string => {
+  if (!message) return "";
+  
+  // Try different possible structures
+  if (typeof message.content === "string") {
+    return message.content;
+  }
   
   if (Array.isArray(message.content)) {
     return message.content
@@ -81,8 +86,8 @@ const extractMessageText = (message: ChatKitMessage): string => {
       .join(" ");
   }
   
-  if (typeof message.content === "string") {
-    return message.content;
+  if (message.text) {
+    return message.text;
   }
   
   return "";
@@ -98,6 +103,7 @@ export function ChatKitPanel() {
   const loggedMessageIds = useRef<Set<string>>(new Set());
   const conversationRef = useRef<string[]>([]);
   const hasEscalatedRef = useRef(false);
+  const debugLoggedRef = useRef(false);
 
   useEffect(() => {
     sendAnalytics("conversation_start");
@@ -319,27 +325,53 @@ export function ChatKitPanel() {
   });
 
   // ============================================
-  // POLLING-BASED MESSAGE LOGGING
-  // Check for new messages every 2 seconds
+  // DEBUG: Explore chatkit.control structure
   // ============================================
   useEffect(() => {
     console.log("[Trax] Starting message polling...");
     
     const pollInterval = setInterval(() => {
-      const messages = chatkit.control?.messages;
-      
-      // Debug: log what we're seeing
-      if (messages) {
-        console.log("[Trax] Poll - messages count:", messages.length);
+      // Debug: Log the entire control object structure (only once after messages exist)
+      if (!debugLoggedRef.current && chatkit.control) {
+        console.log("[Trax] DEBUG - chatkit.control keys:", Object.keys(chatkit.control));
+        console.log("[Trax] DEBUG - chatkit.control:", chatkit.control);
+        
+        // Check for common property names
+        const possibleProps = ['messages', 'thread', 'conversation', 'history', 'items', 'state'];
+        possibleProps.forEach(prop => {
+          if ((chatkit.control as any)[prop]) {
+            console.log(`[Trax] DEBUG - Found property '${prop}':`, (chatkit.control as any)[prop]);
+          }
+        });
+        
+        debugLoggedRef.current = true;
       }
       
-      if (!messages || !Array.isArray(messages)) {
+      // Try multiple possible paths to messages
+      const control = chatkit.control as any;
+      let messages: any[] | null = null;
+      
+      // Try different possible paths
+      if (control?.messages && Array.isArray(control.messages)) {
+        messages = control.messages;
+        console.log("[Trax] Found messages at control.messages");
+      } else if (control?.thread?.messages && Array.isArray(control.thread.messages)) {
+        messages = control.thread.messages;
+        console.log("[Trax] Found messages at control.thread.messages");
+      } else if (control?.state?.messages && Array.isArray(control.state.messages)) {
+        messages = control.state.messages;
+        console.log("[Trax] Found messages at control.state.messages");
+      }
+      
+      if (!messages) {
         return;
       }
 
+      console.log("[Trax] Poll - messages count:", messages.length);
+
       for (const message of messages) {
         // Create unique ID for this message
-        const messageId = message.id || `${message.role}-${Date.now()}`;
+        const messageId = message.id || `${message.role}-${JSON.stringify(message).substring(0, 50)}`;
         
         // Skip if already logged
         if (loggedMessageIds.current.has(messageId)) {
