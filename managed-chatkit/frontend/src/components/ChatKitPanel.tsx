@@ -107,94 +107,121 @@ export function ChatKitPanel() {
   }, []);
 
   // ============================================
-  // DOM OBSERVATION FOR MESSAGE LOGGING
+  // SHADOW DOM OBSERVATION FOR MESSAGE LOGGING
   // ============================================
   useEffect(() => {
-    console.log("[Trax] Setting up DOM observer...");
+    console.log("[Trax] Setting up Shadow DOM observer...");
     
-    const processMessages = () => {
-      const container = chatContainerRef.current;
-      if (!container) return;
-
-      // Find all message elements - ChatKit uses data attributes or specific classes
-      // We'll look for common patterns
-      const messageSelectors = [
-        '[data-role="user"]',
-        '[data-role="assistant"]',
+    const processMessages = (shadowRoot: ShadowRoot) => {
+      // Try various selectors that might exist in ChatKit's shadow DOM
+      const selectors = [
+        '[data-testid*="message"]',
         '[class*="message"]',
         '[class*="Message"]',
-        '[class*="thread-item"]',
-        '[class*="ThreadItem"]',
+        '[class*="thread"]',
+        '[class*="Thread"]',
+        '[role="listitem"]',
+        '[role="article"]',
+        'article',
+        '.user-message',
+        '.assistant-message',
       ];
 
-      let messageElements: Element[] = [];
-      
-      for (const selector of messageSelectors) {
-        const elements = container.querySelectorAll(selector);
+      let found = false;
+      for (const selector of selectors) {
+        const elements = shadowRoot.querySelectorAll(selector);
         if (elements.length > 0) {
-          console.log(`[Trax] Found ${elements.length} elements with selector: ${selector}`);
-          messageElements = Array.from(elements);
+          console.log(`[Trax] Found ${elements.length} elements with: ${selector}`);
+          found = true;
+          
+          elements.forEach((el, index) => {
+            const text = el.textContent?.trim() || "";
+            if (text.length < 5) return; // Skip very short content
+            
+            const messageKey = `${text.substring(0, 100)}`;
+            
+            if (!loggedMessagesRef.current.has(messageKey)) {
+              // Try to determine role
+              const classList = el.className || "";
+              const isUser = classList.toLowerCase().includes("user") || 
+                            el.getAttribute("data-role") === "user";
+              const role = isUser ? "user" : "assistant";
+              
+              console.log(`[Trax] New message (${role}):`, text.substring(0, 50));
+              loggedMessagesRef.current.add(messageKey);
+              logMessage(role, text);
+              conversationRef.current.push(`${role === "user" ? "User" : "Assistant"}: ${text}`);
+            }
+          });
           break;
         }
       }
+      
+      if (!found) {
+        // Debug: show shadow DOM structure
+        console.log("[Trax] DEBUG - Shadow DOM innerHTML:", shadowRoot.innerHTML.substring(0, 1000));
+      }
+    };
 
-      // If no specific selectors work, look for the thread container
-      if (messageElements.length === 0) {
-        // Debug: log what we can find
-        console.log("[Trax] DEBUG - Container children:", container.innerHTML.substring(0, 500));
+    const findAndObserveShadowRoot = () => {
+      const container = chatContainerRef.current;
+      if (!container) {
+        console.log("[Trax] Container not ready, retrying...");
+        setTimeout(findAndObserveShadowRoot, 500);
+        return;
       }
 
-      messageElements.forEach((el, index) => {
-        const text = el.textContent?.trim() || "";
-        const messageKey = `${index}-${text.substring(0, 50)}`;
-        
-        if (text && !loggedMessagesRef.current.has(messageKey)) {
-          // Determine role from element attributes or position
-          const role = el.getAttribute("data-role") || 
-                      (el.className.includes("user") ? "user" : "assistant");
-          
-          console.log(`[Trax] Found message (${role}):`, text.substring(0, 50));
-          loggedMessagesRef.current.add(messageKey);
-          
-          // Log it
-          logMessage(role as "user" | "assistant", text);
-          conversationRef.current.push(`${role === "user" ? "User" : "Assistant"}: ${text}`);
+      // Find the openai-chatkit web component
+      const chatkitElement = container.querySelector("openai-chatkit");
+      if (!chatkitElement) {
+        console.log("[Trax] ChatKit element not found, retrying...");
+        setTimeout(findAndObserveShadowRoot, 500);
+        return;
+      }
+
+      // Try to access shadow root
+      const shadowRoot = (chatkitElement as any).shadowRoot;
+      if (!shadowRoot) {
+        console.log("[Trax] Shadow root not accessible (closed shadow DOM)");
+        console.log("[Trax] ChatKit element:", chatkitElement);
+        return;
+      }
+
+      console.log("[Trax] Shadow root found! Setting up observer...");
+
+      // Set up observer on shadow root
+      const observer = new MutationObserver((mutations) => {
+        const hasRelevantChanges = mutations.some(m => 
+          m.addedNodes.length > 0 || m.type === "characterData"
+        );
+        if (hasRelevantChanges) {
+          console.log("[Trax] Shadow DOM mutation detected");
+          setTimeout(() => processMessages(shadowRoot), 300);
         }
       });
+
+      observer.observe(shadowRoot, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
+
+      // Initial scan
+      setTimeout(() => processMessages(shadowRoot), 1000);
+
+      // Also poll periodically as backup
+      const pollInterval = setInterval(() => {
+        processMessages(shadowRoot);
+      }, 3000);
+
+      return () => {
+        observer.disconnect();
+        clearInterval(pollInterval);
+      };
     };
 
-    // Set up MutationObserver to watch for new messages
-    const observer = new MutationObserver((mutations) => {
-      // Check if any mutations added nodes
-      const hasNewNodes = mutations.some(m => m.addedNodes.length > 0);
-      if (hasNewNodes) {
-        console.log("[Trax] DOM mutation detected - checking for new messages");
-        // Small delay to let content render
-        setTimeout(processMessages, 500);
-      }
-    });
-
-    // Start observing once container is available
-    const startObserving = () => {
-      const container = chatContainerRef.current;
-      if (container) {
-        console.log("[Trax] Starting DOM observation on container");
-        observer.observe(container, {
-          childList: true,
-          subtree: true,
-          characterData: true,
-        });
-        // Initial scan
-        setTimeout(processMessages, 1000);
-      } else {
-        console.log("[Trax] Container not ready, retrying...");
-        setTimeout(startObserving, 500);
-      }
-    };
-
-    startObserving();
-
-    return () => observer.disconnect();
+    // Start looking for shadow root
+    setTimeout(findAndObserveShadowRoot, 1000);
   }, []);
 
   const chatkit = useChatKit({
