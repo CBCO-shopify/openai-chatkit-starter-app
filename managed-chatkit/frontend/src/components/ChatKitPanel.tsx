@@ -57,16 +57,17 @@ export function ChatKitPanel() {
   const handleMessage = (event: MessageEvent) => {
   if (!event.origin.includes('openai.com')) return;
   
-  // Check for ChatKit events
   if (event.data?.__oaiChatKit && Array.isArray(event.data.data)) {
     const [eventType, eventData] = event.data.data;
     
-    // Capture thread ID when thread is created/changed
+    // Log ALL events with full data
+    console.log('[Trax] Event:', eventType, JSON.stringify(eventData, null, 2));
+    
+    // Capture thread ID
     if (eventType === 'thread.change' && eventData?.threadId) {
       const threadId = eventData.threadId;
       console.log('[Trax] Thread ID captured:', threadId);
       
-      // Store thread ID linked to session
       fetch("https://n8n.curtainworld.net.au/webhook/chatbot-analytics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
