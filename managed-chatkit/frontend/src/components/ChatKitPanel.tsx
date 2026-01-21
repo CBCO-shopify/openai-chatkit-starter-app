@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef, useState } from "react";
+import { useMemo, useEffect, useRef, useState, useCallback } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import type { ChatKitMessage } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
@@ -46,40 +46,88 @@ const sendAnalytics = async (eventType: string, data: Record<string, unknown> = 
 };
 
 // ============================================
-// FRONTEND-DRIVEN MESSAGE LOGGING
+// MESSAGE LOGGING
 // ============================================
-const logMessageExchange = async (userMessage: string, assistantMessage: string) => {
+const logMessage = async (role: "user" | "assistant", content: string) => {
   const sessionId = getSessionId();
   
   try {
-    // Log user message
     await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message_id: crypto.randomUUID(),
         session_id: sessionId,
-        role: "user",
-        content: userMessage,
+        role: role,
+        content: content,
         timestamp: new Date().toISOString(),
       }),
     });
-
-    // Log assistant message
-    await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message_id: crypto.randomUUID(),
-        session_id: sessionId,
-        role: "assistant",
-        content: assistantMessage,
-        timestamp: new Date().toISOString(),
-      }),
-    });
+    console.log(`[Trax] Logged ${role} message`);
   } catch (e) {
     console.error("Message logging error:", e);
   }
+};
+
+// ============================================
+// SESSION LOGGING
+// ============================================
+const logSession = async (transcript: string[], outcome: string = "unclear") => {
+  const sessionId = getSessionId();
+  
+  // Don't log if no messages
+  if (transcript.length === 0) return;
+  
+  // Determine topic from conversation
+  const fullTranscript = transcript.join("\n");
+  let topic = "other";
+  const lowerTranscript = fullTranscript.toLowerCase();
+  
+  if (lowerTranscript.includes("order") || lowerTranscript.includes("delivery") || lowerTranscript.includes("track")) {
+    topic = "orders";
+  } else if (lowerTranscript.includes("measure") || lowerTranscript.includes("install")) {
+    topic = "measuring";
+  } else if (lowerTranscript.includes("blind") || lowerTranscript.includes("curtain") || lowerTranscript.includes("shutter")) {
+    topic = "products";
+  }
+  
+  try {
+    await fetch("https://n8n.curtainworld.net.au/webhook/log-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: sessionId,
+        summary: `Conversation with ${transcript.length} messages about ${topic}.`,
+        transcript: fullTranscript,
+        topic_category: topic,
+        outcome: outcome,
+        timestamp: new Date().toISOString(),
+      }),
+    });
+    console.log("[Trax] Session logged");
+  } catch (e) {
+    console.error("Session logging error:", e);
+  }
+};
+
+// Extract text content from ChatKit message
+const extractMessageText = (message: ChatKitMessage): string => {
+  if (!message.content) return "";
+  
+  // Handle array of content blocks
+  if (Array.isArray(message.content)) {
+    return message.content
+      .filter((c: any) => c.type === "text" && c.text)
+      .map((c: any) => c.text)
+      .join(" ");
+  }
+  
+  // Handle string content
+  if (typeof message.content === "string") {
+    return message.content;
+  }
+  
+  return "";
 };
 
 export function ChatKitPanel() {
@@ -88,12 +136,35 @@ export function ChatKitPanel() {
     []
   );
 
-  // Track messages to detect new exchanges
-  const [messages, setMessages] = useState<ChatKitMessage[]>([]);
-  const lastLoggedIndexRef = useRef(-1);
+  // Track conversation for logging
+  const conversationRef = useRef<string[]>([]);
+  const lastMessageCountRef = useRef(0);
+  const hasEscalatedRef = useRef(false);
 
   useEffect(() => {
     sendAnalytics("conversation_start");
+    
+    // Log session when user leaves page
+    const handleBeforeUnload = () => {
+      if (conversationRef.current.length > 0) {
+        const outcome = hasEscalatedRef.current ? "escalated" : "abandoned";
+        // Use sendBeacon for reliability on page close
+        navigator.sendBeacon(
+          "https://n8n.curtainworld.net.au/webhook/log-session",
+          JSON.stringify({
+            session_id: getSessionId(),
+            summary: `Session ended (${outcome}). ${conversationRef.current.length} messages exchanged.`,
+            transcript: conversationRef.current.join("\n"),
+            topic_category: "other",
+            outcome: outcome,
+            timestamp: new Date().toISOString(),
+          })
+        );
+      }
+    };
+    
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
   const chatkit = useChatKit({
@@ -127,10 +198,31 @@ export function ChatKitPanel() {
       },
     },
 
+    // ============================================
+    // MESSAGE EVENT HANDLERS
+    // ============================================
+    onMessage: (message: ChatKitMessage) => {
+      console.log("[Trax] onMessage fired:", message.role, message);
+      
+      const text = extractMessageText(message);
+      if (!text) return;
+      
+      // Log the message
+      if (message.role === "user" || message.role === "assistant") {
+        logMessage(message.role, text);
+        
+        // Add to conversation transcript
+        const prefix = message.role === "user" ? "User" : "Assistant";
+        conversationRef.current.push(`${prefix}: ${text}`);
+      }
+    },
+
     onClientTool: async (toolCall) => {
       console.log("Client tool called:", toolCall.name, toolCall);
 
       if (toolCall.name === "create_gorgias_ticket") {
+        hasEscalatedRef.current = true;
+        
         sendAnalytics("escalation", {
           tool_name: "create_gorgias_ticket",
           subject: toolCall.params.subject,
@@ -158,6 +250,9 @@ export function ChatKitPanel() {
           );
 
           if (!response.ok) throw new Error("Failed to create ticket");
+          
+          // Log session as escalated
+          logSession(conversationRef.current, "escalated");
 
           return {
             success: true,
@@ -226,9 +321,6 @@ export function ChatKitPanel() {
         }
       }
 
-      // REMOVED: log_message and log_session tools
-      // Frontend now handles this automatically
-
       if (toolCall.name === "get_variant_id") {
         console.log("get_variant_id handler entered");
         console.log("Params:", toolCall.params);
@@ -289,44 +381,6 @@ export function ChatKitPanel() {
       return { error: "Unknown tool: " + toolCall.name };
     },
   });
-
-  // ============================================
-  // AUTOMATIC MESSAGE LOGGING
-  // Watch for new messages and log exchanges
-  // ============================================
-  useEffect(() => {
-    // Get messages from ChatKit control
-    const currentMessages = chatkit.control.messages || [];
-    
-    // Find new user-assistant exchanges
-    for (let i = lastLoggedIndexRef.current + 1; i < currentMessages.length; i++) {
-      const msg = currentMessages[i];
-      
-      // Look for assistant responses (which come after user messages)
-      if (msg.role === "assistant" && i > 0) {
-        const previousMsg = currentMessages[i - 1];
-        
-        if (previousMsg.role === "user") {
-          // Found a user-assistant exchange
-          const userContent = previousMsg.content
-            .filter((c: any) => c.type === "text")
-            .map((c: any) => c.text)
-            .join(" ");
-            
-          const assistantContent = msg.content
-            .filter((c: any) => c.type === "text")
-            .map((c: any) => c.text)
-            .join(" ");
-          
-          // Log this exchange
-          if (userContent && assistantContent) {
-            logMessageExchange(userContent, assistantContent);
-            lastLoggedIndexRef.current = i;
-          }
-        }
-      }
-    }
-  }, [chatkit.control.messages]);
 
   return (
     <div
