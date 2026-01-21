@@ -53,46 +53,47 @@ export function ChatKitPanel() {
   const hasEscalatedRef = useRef(false);
 
   useEffect(() => {
-    // Listen for ChatKit postMessage events
-const handleMessage = (event: MessageEvent) => {
-  // Only accept messages from OpenAI
-  if (!event.origin.includes('openai.com')) return;
+  // Listen for ChatKit postMessage events
+  const handleMessage = (event: MessageEvent) => {
+    // Only accept messages from OpenAI
+    if (!event.origin.includes('openai.com')) return;
+    
+    console.log('[Trax] PostMessage received:', event.data);
+    
+    // Check if it contains thread info
+    if (event.data?.threadId || event.data?.activeThread) {
+      console.log('[Trax] Thread ID found:', event.data.threadId || event.data.activeThread);
+    }
+  };
+  window.addEventListener('message', handleMessage);
   
-  console.log('[Trax] PostMessage received:', event.data);
+  sendAnalytics("conversation_start");
+  console.log("[Trax] Session started:", getSessionId());
   
-  // Check if it contains thread info
-  if (event.data?.threadId || event.data?.activeThread) {
-    console.log('[Trax] Thread ID found:', event.data.threadId || event.data.activeThread);
-  }
-};
-
-window.addEventListener('message', handleMessage);
-    
-    sendAnalytics("conversation_start");
-    console.log("[Trax] Session started:", getSessionId());
-    
-    // Log session when user leaves page (backup)
-    const handleBeforeUnload = () => {
-      if (conversationRef.current.length > 0 && !hasEscalatedRef.current) {
-        navigator.sendBeacon(
-          "https://n8n.curtainworld.net.au/webhook/log-session",
-          JSON.stringify({
-            session_id: getSessionId(),
-            summary: `Session ended (abandoned). ${conversationRef.current.length} messages exchanged.`,
-            transcript: conversationRef.current.join("\n"),
-            topic_category: "other",
-            outcome: "abandoned",
-            timestamp: new Date().toISOString(),
-          })
-        );
-      }
-    };
-    
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-  window.removeEventListener("beforeunload", handleBeforeUnload);
-  window.removeEventListener('message', handleMessage);
-};
+  // Log session when user leaves page (backup)
+  const handleBeforeUnload = () => {
+    if (conversationRef.current.length > 0 && !hasEscalatedRef.current) {
+      navigator.sendBeacon(
+        "https://n8n.curtainworld.net.au/webhook/log-session",
+        JSON.stringify({
+          session_id: getSessionId(),
+          summary: `Session ended (abandoned). ${conversationRef.current.length} messages exchanged.`,
+          transcript: conversationRef.current.join("\n"),
+          topic_category: "other",
+          outcome: "abandoned",
+          timestamp: new Date().toISOString(),
+        })
+      );
+    }
+  };
+  
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.removeEventListener('message', handleMessage);
+  };
+}, []);
 
   const chatkit = useChatKit({
     api: { getClientSecret },
