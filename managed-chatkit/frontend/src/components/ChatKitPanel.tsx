@@ -43,32 +43,6 @@ const sendAnalytics = async (eventType: string, data: Record<string, unknown> = 
   }
 };
 
-// ============================================
-// MESSAGE LOGGING
-// ============================================
-const logMessage = async (role: "user" | "assistant", content: string) => {
-  const sessionId = getSessionId();
-  
-  console.log(`[Trax] Logging ${role} message:`, content.substring(0, 50) + "...");
-  
-  try {
-    const response = await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message_id: crypto.randomUUID(),
-        session_id: sessionId,
-        role: role,
-        content: content,
-        timestamp: new Date().toISOString(),
-      }),
-    });
-    console.log(`[Trax] Log response:`, response.status);
-  } catch (e) {
-    console.error("[Trax] Message logging error:", e);
-  }
-};
-
 export function ChatKitPanel() {
   const getClientSecret = useMemo(
     () => createClientSecretFetcher(workflowId),
@@ -77,25 +51,22 @@ export function ChatKitPanel() {
 
   const conversationRef = useRef<string[]>([]);
   const hasEscalatedRef = useRef(false);
-  const loggedMessagesRef = useRef<Set<string>>(new Set());
-  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     sendAnalytics("conversation_start");
     console.log("[Trax] Session started:", getSessionId());
     
-    // Log session when user leaves page
+    // Log session when user leaves page (backup)
     const handleBeforeUnload = () => {
-      if (conversationRef.current.length > 0) {
-        const outcome = hasEscalatedRef.current ? "escalated" : "abandoned";
+      if (conversationRef.current.length > 0 && !hasEscalatedRef.current) {
         navigator.sendBeacon(
           "https://n8n.curtainworld.net.au/webhook/log-session",
           JSON.stringify({
             session_id: getSessionId(),
-            summary: `Session ended (${outcome}). ${conversationRef.current.length} messages exchanged.`,
+            summary: `Session ended (abandoned). ${conversationRef.current.length} messages exchanged.`,
             transcript: conversationRef.current.join("\n"),
             topic_category: "other",
-            outcome: outcome,
+            outcome: "abandoned",
             timestamp: new Date().toISOString(),
           })
         );
@@ -104,124 +75,6 @@ export function ChatKitPanel() {
     
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
-
-  // ============================================
-  // SHADOW DOM OBSERVATION FOR MESSAGE LOGGING
-  // ============================================
-  useEffect(() => {
-    console.log("[Trax] Setting up Shadow DOM observer...");
-    
-    const processMessages = (shadowRoot: ShadowRoot) => {
-      // Try various selectors that might exist in ChatKit's shadow DOM
-      const selectors = [
-        '[data-testid*="message"]',
-        '[class*="message"]',
-        '[class*="Message"]',
-        '[class*="thread"]',
-        '[class*="Thread"]',
-        '[role="listitem"]',
-        '[role="article"]',
-        'article',
-        '.user-message',
-        '.assistant-message',
-      ];
-
-      let found = false;
-      for (const selector of selectors) {
-        const elements = shadowRoot.querySelectorAll(selector);
-        if (elements.length > 0) {
-          console.log(`[Trax] Found ${elements.length} elements with: ${selector}`);
-          found = true;
-          
-          elements.forEach((el, index) => {
-            const text = el.textContent?.trim() || "";
-            if (text.length < 5) return; // Skip very short content
-            
-            const messageKey = `${text.substring(0, 100)}`;
-            
-            if (!loggedMessagesRef.current.has(messageKey)) {
-              // Try to determine role
-              const classList = el.className || "";
-              const isUser = classList.toLowerCase().includes("user") || 
-                            el.getAttribute("data-role") === "user";
-              const role = isUser ? "user" : "assistant";
-              
-              console.log(`[Trax] New message (${role}):`, text.substring(0, 50));
-              loggedMessagesRef.current.add(messageKey);
-              logMessage(role, text);
-              conversationRef.current.push(`${role === "user" ? "User" : "Assistant"}: ${text}`);
-            }
-          });
-          break;
-        }
-      }
-      
-      if (!found) {
-        // Debug: show shadow DOM structure
-        console.log("[Trax] DEBUG - Shadow DOM innerHTML:", shadowRoot.innerHTML.substring(0, 1000));
-      }
-    };
-
-    const findAndObserveShadowRoot = () => {
-      const container = chatContainerRef.current;
-      if (!container) {
-        console.log("[Trax] Container not ready, retrying...");
-        setTimeout(findAndObserveShadowRoot, 500);
-        return;
-      }
-
-      // Find the openai-chatkit web component
-      const chatkitElement = container.querySelector("openai-chatkit");
-      if (!chatkitElement) {
-        console.log("[Trax] ChatKit element not found, retrying...");
-        setTimeout(findAndObserveShadowRoot, 500);
-        return;
-      }
-
-      // Try to access shadow root
-      const shadowRoot = (chatkitElement as any).shadowRoot;
-      if (!shadowRoot) {
-        console.log("[Trax] Shadow root not accessible (closed shadow DOM)");
-        console.log("[Trax] ChatKit element:", chatkitElement);
-        return;
-      }
-
-      console.log("[Trax] Shadow root found! Setting up observer...");
-
-      // Set up observer on shadow root
-      const observer = new MutationObserver((mutations) => {
-        const hasRelevantChanges = mutations.some(m => 
-          m.addedNodes.length > 0 || m.type === "characterData"
-        );
-        if (hasRelevantChanges) {
-          console.log("[Trax] Shadow DOM mutation detected");
-          setTimeout(() => processMessages(shadowRoot), 300);
-        }
-      });
-
-      observer.observe(shadowRoot, {
-        childList: true,
-        subtree: true,
-        characterData: true,
-      });
-
-      // Initial scan
-      setTimeout(() => processMessages(shadowRoot), 1000);
-
-      // Also poll periodically as backup
-      const pollInterval = setInterval(() => {
-        processMessages(shadowRoot);
-      }, 3000);
-
-      return () => {
-        observer.disconnect();
-        clearInterval(pollInterval);
-      };
-    };
-
-    // Start looking for shadow root
-    setTimeout(findAndObserveShadowRoot, 1000);
   }, []);
 
   const chatkit = useChatKit({
@@ -256,8 +109,98 @@ export function ChatKitPanel() {
     },
 
     onClientTool: async (toolCall) => {
-      console.log("Client tool called:", toolCall.name, toolCall);
+      console.log("[Trax] Client tool called:", toolCall.name, toolCall.params);
 
+      // ============================================
+      // LOG MESSAGE HANDLER
+      // ============================================
+      if (toolCall.name === "log_message") {
+        const sessionId = getSessionId();
+        
+        console.log("[Trax] Logging message exchange");
+        
+        try {
+          // Log user message
+          if (toolCall.params.user_message) {
+            await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message_id: crypto.randomUUID(),
+                session_id: sessionId,
+                role: "user",
+                content: toolCall.params.user_message,
+                timestamp: new Date().toISOString(),
+              }),
+            });
+            conversationRef.current.push(`User: ${toolCall.params.user_message}`);
+          }
+
+          // Log assistant message
+          if (toolCall.params.assistant_message) {
+            await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message_id: crypto.randomUUID(),
+                session_id: sessionId,
+                role: "assistant",
+                content: toolCall.params.assistant_message,
+                timestamp: new Date().toISOString(),
+              }),
+            });
+            conversationRef.current.push(`Assistant: ${toolCall.params.assistant_message}`);
+          }
+
+          console.log("[Trax] Messages logged successfully");
+          return { success: true, message: "Messages logged" };
+        } catch (error) {
+          console.error("[Trax] Message logging error:", error);
+          return { success: false, message: "Failed to log messages" };
+        }
+      }
+
+      // ============================================
+      // LOG SESSION HANDLER
+      // ============================================
+      if (toolCall.name === "log_session") {
+        const sessionId = getSessionId();
+        
+        console.log("[Trax] Logging session");
+        
+        try {
+          const response = await fetch("https://n8n.curtainworld.net.au/webhook/log-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              session_id: sessionId,
+              summary: toolCall.params.summary || "",
+              transcript: toolCall.params.transcript || conversationRef.current.join("\n"),
+              topic_category: toolCall.params.topic_category || "other",
+              outcome: toolCall.params.outcome || "unclear",
+              customer_email: toolCall.params.customer_email || "",
+              customer_phone: toolCall.params.customer_phone || "",
+              customer_name: toolCall.params.customer_name || "",
+              escalated: toolCall.params.outcome === "escalated",
+              timestamp: new Date().toISOString(),
+            }),
+          });
+
+          if (toolCall.params.outcome === "escalated") {
+            hasEscalatedRef.current = true;
+          }
+
+          console.log("[Trax] Session logged successfully");
+          return { success: true, message: "Session logged" };
+        } catch (error) {
+          console.error("[Trax] Session logging error:", error);
+          return { success: false, message: "Failed to log session" };
+        }
+      }
+
+      // ============================================
+      // GORGIAS ESCALATION HANDLER
+      // ============================================
       if (toolCall.name === "create_gorgias_ticket") {
         hasEscalatedRef.current = true;
         
@@ -313,6 +256,9 @@ export function ChatKitPanel() {
         }
       }
 
+      // ============================================
+      // ORDER LOOKUP HANDLER
+      // ============================================
       if (toolCall.name === "lookup_order") {
         sendAnalytics("tool_call", {
           tool_name: "lookup_order",
@@ -356,6 +302,9 @@ export function ChatKitPanel() {
         }
       }
 
+      // ============================================
+      // GET VARIANT ID HANDLER
+      // ============================================
       if (toolCall.name === "get_variant_id") {
         console.log("get_variant_id handler entered");
         console.log("Params:", toolCall.params);
@@ -390,6 +339,9 @@ export function ChatKitPanel() {
         }
       }
 
+      // ============================================
+      // GET CART ID HANDLER
+      // ============================================
       if (toolCall.name === "get_shopify_cart_id") {
         const cartId = getCartIdFromUrl();
 
@@ -408,6 +360,10 @@ export function ChatKitPanel() {
         }
       }
 
+      // ============================================
+      // UNKNOWN TOOL FALLBACK
+      // ============================================
+      console.warn("[Trax] Unknown tool called:", toolCall.name);
       sendAnalytics("tool_call", {
         tool_name: toolCall.name,
         user_message: "Unknown tool invoked",
@@ -443,7 +399,7 @@ export function ChatKitPanel() {
         </div>
       </div>
 
-      <div ref={chatContainerRef} style={{ flex: 1, overflow: "hidden" }}>
+      <div style={{ flex: 1, overflow: "hidden" }}>
         <ChatKit
           control={chatkit.control}
           style={{ height: "100%", width: "100%" }}
