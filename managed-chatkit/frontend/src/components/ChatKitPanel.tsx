@@ -55,16 +55,31 @@ export function ChatKitPanel() {
   useEffect(() => {
   // Listen for ChatKit postMessage events
   const handleMessage = (event: MessageEvent) => {
-    // Only accept messages from OpenAI
-    if (!event.origin.includes('openai.com')) return;
+  if (!event.origin.includes('openai.com')) return;
+  
+  // Check for ChatKit events
+  if (event.data?.__oaiChatKit && event.data.data) {
+    const [eventType, eventData] = event.data.data;
     
-    console.log('[Trax] PostMessage received:', event.data);
-    
-    // Check if it contains thread info
-    if (event.data?.threadId || event.data?.activeThread) {
-      console.log('[Trax] Thread ID found:', event.data.threadId || event.data.activeThread);
+    // Capture thread ID when thread is created/changed
+    if (eventType === 'thread.change' && eventData?.threadId) {
+      const threadId = eventData.threadId;
+      console.log('[Trax] Thread ID captured:', threadId);
+      
+      // Store thread ID linked to session
+      fetch("https://n8n.curtainworld.net.au/webhook/chatbot-analytics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_type: "thread_created",
+          session_id: getSessionId(),
+          thread_id: threadId,
+          timestamp: new Date().toISOString(),
+        }),
+      }).catch(e => console.error('[Trax] Failed to log thread:', e));
     }
-  };
+  }
+};
   window.addEventListener('message', handleMessage);
   
   sendAnalytics("conversation_start");
