@@ -291,12 +291,13 @@ export function ChatKitPanel() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                customer_email: toolCall.params.customer_email,
-                customer_phone: toolCall.params.customer_phone || "",
-                subject: toolCall.params.subject,
-                summary: toolCall.params.summary,
-                conversation_transcript: toolCall.params.conversation_transcript,
-              }),
+  thread_id: toolCall.params.thread_id || sessionStorage.getItem('trax_thread_id') || "",
+  customer_email: toolCall.params.customer_email,
+  customer_phone: toolCall.params.customer_phone || "",
+  subject: toolCall.params.subject,
+  summary: toolCall.params.summary,
+  conversation_transcript: toolCall.params.conversation_transcript,
+}),
             }
           );
 
