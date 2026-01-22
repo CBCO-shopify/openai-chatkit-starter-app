@@ -157,14 +157,13 @@ export function ChatKitPanel() {
     },
 
     startScreen: {
-      greeting: "Hi there 👋",
-      prompts: [
-        { label: "Order lookup", prompt: "I'd like to lookup my order", icon: "compass" },
-        { label: "Help me choose", prompt: "Help with product selections", icon: "search" },
-        { label: "Measure and Install", prompt: "Help with measuring and installation", icon: "notebook-pencil" },
-        { label: "Something else", prompt: "I have a different question", icon: "circle-question" },
-      ],
-    },
+  greeting: "Hi there 👋",
+  prompts: [
+    { label: "Check an order", prompt: "I'd like to check my order status", icon: "package" },
+    { label: "Ask me anything", prompt: "I have a question about products or installation", icon: "circle-question" },
+    { label: "Submit enquiry", prompt: "I need to speak with someone from your team", icon: "envelope" },
+  ],
+},
 
     theme: {
       colorScheme: "light",
