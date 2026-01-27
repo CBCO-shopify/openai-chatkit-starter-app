@@ -410,6 +410,58 @@ export function ChatKitPanel() {
       }
 
       // ============================================
+      // ADD TO SHOPIFY CART HANDLER
+      // ============================================
+      if (toolCall.name === "add_to_shopify_cart") {
+        console.log("add_to_shopify_cart handler entered");
+        console.log("Params:", toolCall.params);
+
+        return new Promise((resolve) => {
+          // Listen for response from parent Shopify window
+          const handleMessage = (event: MessageEvent) => {
+            if (event.data && event.data.type === 'ADD_TO_CART_RESULT') {
+              window.removeEventListener('message', handleMessage);
+              
+              if (event.data.success) {
+                console.log("[Trax] Sample added to cart:", event.data.item);
+                resolve({
+                  success: true,
+                  message: "Sample added to cart successfully! The customer can view their cart and checkout when ready.",
+                  item: event.data.item
+                });
+              } else {
+                console.error("[Trax] Cart add failed:", event.data.error);
+                resolve({
+                  success: false,
+                  message: "Failed to add to cart: " + (event.data.error || "Unknown error")
+                });
+              }
+            }
+          };
+          
+          window.addEventListener('message', handleMessage);
+          
+          // Send message to parent Shopify window
+          window.parent.postMessage({
+            type: 'ADD_TO_CART',
+            variantId: toolCall.params.variant_id,
+            quantity: toolCall.params.quantity || 1
+          }, '*');
+          
+          console.log("[Trax] postMessage sent to parent window");
+          
+          // Timeout after 10 seconds
+          setTimeout(() => {
+            window.removeEventListener('message', handleMessage);
+            resolve({
+              success: false,
+              message: "Cart operation timed out. Please try adding the sample directly from the website."
+            });
+          }, 10000);
+        });
+      }
+      
+      // ============================================
       // GET CART ID HANDLER
       // ============================================
       if (toolCall.name === "get_shopify_cart_id") {
