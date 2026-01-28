@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
 
@@ -26,7 +26,99 @@ const getUserId = (): string => {
   return userId;
 };
 
-export function ChatKitPanel() {
+// Pre-chat welcome screen component
+function WelcomeScreen({ onStart }: { onStart: () => void }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        width: "100%",
+        backgroundColor: "#fff",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          padding: "12px 16px",
+          backgroundColor: "var(--trax-green, #4A7C59)",
+          color: "#fff",
+          borderBottom: "1px solid rgba(255,255,255,0.15)",
+        }}
+      >
+        <div style={{ fontWeight: 600, fontSize: "16px" }}>Trax</div>
+        <div style={{ fontSize: "12px", opacity: 0.9 }}>
+          C&amp;BCo&apos;s AI Assistant in training
+        </div>
+      </div>
+
+      {/* Welcome content */}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "24px",
+          textAlign: "center",
+        }}
+      >
+        <div style={{ fontSize: "32px", marginBottom: "16px" }}>👋</div>
+        <h2 style={{ margin: "0 0 8px 0", color: "#333", fontSize: "20px" }}>
+          Hi there!
+        </h2>
+        <p style={{ margin: "0 0 24px 0", color: "#666", fontSize: "14px", maxWidth: "280px" }}>
+          I'm Trax, here to help with orders, products, and any questions about curtains & blinds.
+        </p>
+        
+        <button
+          onClick={onStart}
+          style={{
+            backgroundColor: "var(--trax-green, #4A7C59)",
+            color: "#fff",
+            border: "none",
+            borderRadius: "24px",
+            padding: "14px 32px",
+            fontSize: "16px",
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "transform 0.15s, box-shadow 0.15s",
+            boxShadow: "0 2px 8px rgba(74, 124, 89, 0.3)",
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = "scale(1.02)";
+            e.currentTarget.style.boxShadow = "0 4px 12px rgba(74, 124, 89, 0.4)";
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.boxShadow = "0 2px 8px rgba(74, 124, 89, 0.3)";
+          }}
+        >
+          Start chatting
+        </button>
+      </div>
+
+      {/* Footer */}
+      <div
+        style={{
+          padding: "8px 16px",
+          textAlign: "center",
+          fontSize: "11px",
+          backgroundColor: "white",
+          borderTop: "1px solid #eee",
+          color: "#999",
+        }}
+      >
+        Powered by The Curtain &amp; Blind Company
+      </div>
+    </div>
+  );
+}
+
+// The actual chat component (only mounted after user clicks Start)
+function ActiveChat() {
   const getClientSecret = useMemo(
     () => createClientSecretFetcher(workflowId),
     []
@@ -448,7 +540,7 @@ export function ChatKitPanel() {
         }}
       >
         <div>
-          <div style={{ fontWeight: 600, fontSize: "16px" }}>Traxine</div>
+          <div style={{ fontWeight: 600, fontSize: "16px" }}>Trax</div>
           <div style={{ fontSize: "12px", opacity: 0.9 }}>
             C&amp;BCo&apos;s AI Assistant in training
           </div>
@@ -480,4 +572,15 @@ export function ChatKitPanel() {
       </div>
     </div>
   );
+}
+
+// Main component - shows welcome screen first, then active chat
+export function ChatKitPanel() {
+  const [chatStarted, setChatStarted] = useState(false);
+
+  if (!chatStarted) {
+    return <WelcomeScreen onStart={() => setChatStarted(true)} />;
+  }
+
+  return <ActiveChat />;
 }
