@@ -70,7 +70,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
           Hi there!
         </h2>
         <p style={{ margin: "0 0 24px 0", color: "#666", fontSize: "14px", maxWidth: "280px" }}>
-          I'm Trax, here to help with orders, products, and any questions about curtains & blinds.
+          I'm Trax, here to help with orders, products ot any questions you have about curtains, blinds and shutters.
         </p>
         
         <button
