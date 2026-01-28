@@ -26,23 +26,6 @@ const getUserId = (): string => {
   return userId;
 };
 
-const sendAnalytics = async (eventType: string, data: Record<string, unknown> = {}) => {
-  try {
-    await fetch("https://n8n.curtainworld.net.au/webhook/chatbot-analytics", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        event_type: eventType,
-        timestamp: new Date().toISOString(),
-        session_id: getSessionId(),
-        ...data,
-      }),
-    });
-  } catch (e) {
-    console.log("Analytics error:", e);
-  }
-};
-
 export function ChatKitPanel() {
   const getClientSecret = useMemo(
     () => createClientSecretFetcher(workflowId),
@@ -53,99 +36,87 @@ export function ChatKitPanel() {
   const hasEscalatedRef = useRef(false);
 
   useEffect(() => {
-  // Listen for ChatKit postMessage events
-  const handleMessage = (event: MessageEvent) => {
-  if (!event.origin.includes('openai.com')) return;
-  
-  if (event.data?.__oaiChatKit && Array.isArray(event.data.data)) {
-    const [eventType, eventData] = event.data.data;
-    
-    // Capture user message from composer.submit
-    if (eventType === 'log' && eventData?.name === 'composer.submit') {
-      const userText = eventData.data?.text?.[0]?.text;
-      if (userText) {
-        console.log('[Trax] User message:', userText);
-        
-        fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message_id: crypto.randomUUID(),
-            session_id: getSessionId(),
-            role: "user",
-            content: userText,
-            timestamp: new Date().toISOString(),
-          }),
-        }).catch(e => console.error('[Trax] Failed to log message:', e));
-      }
-    }
-    
-    // Capture thread ID and store it
-    if (eventType === 'thread.change' && eventData?.threadId) {
-      const threadId = eventData.threadId;
-      console.log('[Trax] Thread ID captured:', threadId);
-      sessionStorage.setItem('trax_thread_id', threadId);
+    // Listen for ChatKit postMessage events
+    const handleMessage = (event: MessageEvent) => {
+      if (!event.origin.includes('openai.com')) return;
       
-      fetch("https://n8n.curtainworld.net.au/webhook/chatbot-analytics", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event_type: "thread_created",
-          session_id: getSessionId(),
-          thread_id: threadId,
-          timestamp: new Date().toISOString(),
-        }),
-      }).catch(e => console.error('[Trax] Failed to log thread:', e));
-    }
-    
-    // On response.end, fetch assistant message from OpenAI
-    if (eventType === 'response.end') {
-      const threadId = sessionStorage.getItem('trax_thread_id');
-      if (threadId) {
-        console.log('[Trax] Response ended, fetching assistant message...');
+      if (event.data?.__oaiChatKit && Array.isArray(event.data.data)) {
+        const [eventType, eventData] = event.data.data;
         
-        fetch("https://n8n.curtainworld.net.au/webhook/fetch-assistant-message", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            session_id: getSessionId(),
-            thread_id: threadId,
-            timestamp: new Date().toISOString(),
-          }),
-        }).catch(e => console.error('[Trax] Failed to fetch assistant message:', e));
+        // Capture user message from composer.submit
+        if (eventType === 'log' && eventData?.name === 'composer.submit') {
+          const userText = eventData.data?.text?.[0]?.text;
+          if (userText) {
+            console.log('[Trax] User message:', userText);
+            
+            fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message_id: crypto.randomUUID(),
+                session_id: getSessionId(),
+                role: "user",
+                content: userText,
+                timestamp: new Date().toISOString(),
+              }),
+            }).catch(e => console.error('[Trax] Failed to log message:', e));
+          }
+        }
+        
+        // Capture thread ID and store it
+        if (eventType === 'thread.change' && eventData?.threadId) {
+          const threadId = eventData.threadId;
+          console.log('[Trax] Thread ID captured:', threadId);
+          sessionStorage.setItem('trax_thread_id', threadId);
+        }
+        
+        // On response.end, fetch assistant message from OpenAI
+        if (eventType === 'response.end') {
+          const threadId = sessionStorage.getItem('trax_thread_id');
+          if (threadId) {
+            console.log('[Trax] Response ended, fetching assistant message...');
+            
+            fetch("https://n8n.curtainworld.net.au/webhook/fetch-assistant-message", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                session_id: getSessionId(),
+                thread_id: threadId,
+                timestamp: new Date().toISOString(),
+              }),
+            }).catch(e => console.error('[Trax] Failed to fetch assistant message:', e));
+          }
+        }
       }
-    }
-  }
-};
-  window.addEventListener('message', handleMessage);
-  
-  sendAnalytics("conversation_start");
-  console.log("[Trax] Session started:", getSessionId());
-  
-  // Log session when user leaves page (backup)
-  const handleBeforeUnload = () => {
-    if (conversationRef.current.length > 0 && !hasEscalatedRef.current) {
-      navigator.sendBeacon(
-        "https://n8n.curtainworld.net.au/webhook/log-session",
-        JSON.stringify({
-          session_id: getSessionId(),
-          summary: `Session ended (abandoned). ${conversationRef.current.length} messages exchanged.`,
-          transcript: conversationRef.current.join("\n"),
-          topic_category: "other",
-          outcome: "abandoned",
-          timestamp: new Date().toISOString(),
-        })
-      );
-    }
-  };
-  
-  window.addEventListener("beforeunload", handleBeforeUnload);
-  
-  return () => {
-    window.removeEventListener("beforeunload", handleBeforeUnload);
-    window.removeEventListener('message', handleMessage);
-  };
-}, []);
+    };
+    
+    window.addEventListener('message', handleMessage);
+    console.log("[Trax] Session started:", getSessionId());
+    
+    // Log session when user leaves page (backup)
+    const handleBeforeUnload = () => {
+      if (conversationRef.current.length > 0 && !hasEscalatedRef.current) {
+        navigator.sendBeacon(
+          "https://n8n.curtainworld.net.au/webhook/log-session",
+          JSON.stringify({
+            session_id: getSessionId(),
+            summary: `Session ended (abandoned). ${conversationRef.current.length} messages exchanged.`,
+            transcript: conversationRef.current.join("\n"),
+            topic_category: "other",
+            outcome: "abandoned",
+            timestamp: new Date().toISOString(),
+          })
+        );
+      }
+    };
+    
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
 
   const chatkit = useChatKit({
     api: { getClientSecret },
@@ -157,13 +128,13 @@ export function ChatKitPanel() {
     },
 
     startScreen: {
-  greeting: "Hi there 👋",
-  prompts: [
-    { label: "Check an order", prompt: "I'd like to check my order status", icon: "search" },
-    { label: "Ask me anything", prompt: "I have a question about products or installation", icon: "circle-question" },
-    { label: "Submit enquiry", prompt: "I need to speak with someone from your team", icon: "user" },
-  ],
-},
+      greeting: "Hi there 👋",
+      prompts: [
+        { label: "Check an order", prompt: "I'd like to check my order status", icon: "search" },
+        { label: "Ask me anything", prompt: "I have a question about products or installation", icon: "circle-question" },
+        { label: "Submit enquiry", prompt: "I need to speak with someone from your team", icon: "user" },
+      ],
+    },
 
     theme: {
       colorScheme: "light",
@@ -272,16 +243,6 @@ export function ChatKitPanel() {
       // ============================================
       if (toolCall.name === "create_gorgias_ticket") {
         hasEscalatedRef.current = true;
-        
-        sendAnalytics("escalation", {
-          tool_name: "create_gorgias_ticket",
-          subject: toolCall.params.subject,
-          summary: toolCall.params.summary,
-          user_message: toolCall.params.summary,
-          customer_email: toolCall.params.customer_email,
-          customer_phone: toolCall.params.customer_phone,
-          customer_name: toolCall.params.customer_name,
-        });
 
         try {
           const response = await fetch(
@@ -290,13 +251,13 @@ export function ChatKitPanel() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-  thread_id: sessionStorage.getItem('trax_thread_id') || toolCall.params.thread_id || "",
-  customer_email: toolCall.params.customer_email,
-  customer_phone: toolCall.params.customer_phone || "",
-  subject: toolCall.params.subject,
-  summary: toolCall.params.summary,
-  conversation_transcript: toolCall.params.conversation_transcript,
-}),
+                thread_id: sessionStorage.getItem('trax_thread_id') || toolCall.params.thread_id || "",
+                customer_email: toolCall.params.customer_email,
+                customer_phone: toolCall.params.customer_phone || "",
+                subject: toolCall.params.subject,
+                summary: toolCall.params.summary,
+                conversation_transcript: toolCall.params.conversation_transcript,
+              }),
             }
           );
 
@@ -310,14 +271,6 @@ export function ChatKitPanel() {
         } catch (error) {
           console.error("Gorgias ticket error:", error);
 
-          sendAnalytics("error", {
-            tool_name: "create_gorgias_ticket",
-            error_message: error instanceof Error ? error.message : "Unknown error",
-            user_message: toolCall.params.summary,
-            customer_email: toolCall.params.customer_email,
-            customer_phone: toolCall.params.customer_phone,
-          });
-
           return {
             success: false,
             message:
@@ -330,13 +283,6 @@ export function ChatKitPanel() {
       // ORDER LOOKUP HANDLER
       // ============================================
       if (toolCall.name === "lookup_order") {
-        sendAnalytics("tool_call", {
-          tool_name: "lookup_order",
-          user_message: `Order lookup: ${toolCall.params.order_number}`,
-          customer_email: toolCall.params.email,
-          order_number: toolCall.params.order_number,
-        });
-
         try {
           const response = await fetch(
             "https://n8n.curtainworld.net.au/webhook/order-lookup",
@@ -355,14 +301,6 @@ export function ChatKitPanel() {
           return await response.json();
         } catch (error) {
           console.error("Order lookup error:", error);
-
-          sendAnalytics("error", {
-            tool_name: "lookup_order",
-            error_message: error instanceof Error ? error.message : "Unknown error",
-            user_message: `Order lookup failed: ${toolCall.params.order_number}`,
-            customer_email: toolCall.params.email,
-            order_number: toolCall.params.order_number,
-          });
 
           return {
             success: false,
@@ -486,10 +424,6 @@ export function ChatKitPanel() {
       // UNKNOWN TOOL FALLBACK
       // ============================================
       console.warn("[Trax] Unknown tool called:", toolCall.name);
-      sendAnalytics("tool_call", {
-        tool_name: toolCall.name,
-        user_message: "Unknown tool invoked",
-      });
 
       return { error: "Unknown tool: " + toolCall.name };
     },
