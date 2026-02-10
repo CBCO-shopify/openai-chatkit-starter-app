@@ -538,9 +538,9 @@ function ActiveChat() {
 
       setUploadedImageUrls((prev) => [...prev, result.url]);
 
-      // Send message with inline markdown image so it appears in the chat
+      // Send a clean text message — ChatKit does not render markdown images
       chatkit.sendUserMessage({
-        text: `I've uploaded an image.\n\n![](${result.url})`,
+        text: "I've uploaded an image.",
       });
 
       console.log("[Trax] Image uploaded:", result.url);
