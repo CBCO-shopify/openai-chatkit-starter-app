@@ -1,0 +1,36 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/create-session",
+      "destination": "https://n8n.curtainworld.net.au/webhook/chatkit-session"
+    },
+    {
+      "source": "/api/uploads/sign",
+      "destination": "https://n8n.curtainworld.net.au/webhook/upload-sign"
+    },
+    {
+      "source": "/api/log-message",
+      "destination": "https://n8n.curtainworld.net.au/webhook/log-message"
+    },
+    {
+      "source": "/api/fetch-assistant-message",
+      "destination": "https://n8n.curtainworld.net.au/webhook/fetch-assistant-message"
+    },
+    {
+      "source": "/api/log-session",
+      "destination": "https://n8n.curtainworld.net.au/webhook/log-session"
+    },
+    {
+      "source": "/api/gorgias-escalation",
+      "destination": "https://n8n.curtainworld.net.au/webhook/gorgias-escalation"
+    },
+    {
+      "source": "/api/order-lookup",
+      "destination": "https://n8n.curtainworld.net.au/webhook/order-lookup"
+    },
+    {
+      "source": "/api/get-variant-id",
+      "destination": "https://n8n.curtainworld.net.au/webhook/get-variant-id"
+    }
+  ]
+}
