@@ -66,7 +66,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
           textAlign: "center",
         }}
       >
-        <div style={{ fontSize: "32px", marginBottom: "16px" }}>👋</div>
+        <div style={{ fontSize: "32px", marginBottom: "16px" }}>&#x1F44B;</div>
         <h2 style={{ margin: "0 0 8px 0", color: "#333", fontSize: "20px" }}>
           Hi there!
         </h2>
@@ -134,6 +134,7 @@ function ActiveChat() {
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
   const uploadedImageUrlsRef = useRef<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedPreviews, setUploadedPreviews] = useState<{ localUrl: string; name: string }[]>([]);
 
   useEffect(() => {
     uploadedImageUrlsRef.current = uploadedImageUrls;
@@ -232,7 +233,7 @@ function ActiveChat() {
     },
 
     startScreen: {
-      greeting: "Hi there 👋",
+      greeting: "Hi there!",
       prompts: [
         { label: "Check an order", prompt: "I'd like to check my order status", icon: "search" },
         { label: "Ask me anything", prompt: "I have a question about products or installation", icon: "circle-question" },
@@ -547,8 +548,12 @@ function ActiveChat() {
 
       setUploadedImageUrls((prev) => [...prev, result.url]);
 
+      // Show thumbnail preview
+      const localUrl = URL.createObjectURL(file);
+      setUploadedPreviews((prev) => [...prev, { localUrl, name: file.name }]);
+
       chatkit.sendUserMessage({
-        text: `I've uploaded an image: ${result.url}`,
+        text: "I've uploaded an image.",
       });
 
       console.log("[Trax] Image uploaded:", result.url);
@@ -610,6 +615,45 @@ function ActiveChat() {
           e.target.value = "";
         }}
       />
+
+      {/* Uploaded image previews */}
+      {uploadedPreviews.length > 0 && (
+        <div
+          style={{
+            padding: "8px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            borderTop: "1px solid #eee",
+            backgroundColor: "white",
+          }}
+        >
+          {uploadedPreviews.map((preview, i) => (
+            <div
+              key={i}
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "6px",
+                overflow: "hidden",
+                border: "1px solid #ddd",
+                flexShrink: 0,
+              }}
+            >
+              <img
+                src={preview.localUrl}
+                alt={preview.name}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            </div>
+          ))}
+          <span style={{ fontSize: "12px", color: "#666" }}>
+            {uploadedPreviews.length === 1
+              ? "1 image attached"
+              : `${uploadedPreviews.length} images attached`}
+          </span>
+        </div>
+      )}
 
       {/* Upload button bar */}
       <div
