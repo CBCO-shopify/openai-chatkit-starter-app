@@ -31,7 +31,7 @@ export const getCartIdFromUrl = (): string | null => {
 
 export function createClientSecretFetcher(
   workflow: string,
-  endpoint = "https://n8n.curtainworld.net.au/webhook/chatkit-session"
+  endpoint = "/api/create-session"
 ) {
   return async (currentSecret: string | null) => {
     if (currentSecret) return currentSecret;
