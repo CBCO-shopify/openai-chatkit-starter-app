@@ -1,6 +1,7 @@
 import { useMemo, useEffect, useRef, useState } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import { createClientSecretFetcher, workflowId } from "../lib/chatkitSession";
+import { uploadChatImage, UploadError } from "../lib/uploadToSupabase";
 
 const getCartIdFromUrl = (): string | null => {
   const params = new URLSearchParams(window.location.search);
@@ -126,6 +127,17 @@ function ActiveChat() {
 
   const conversationRef = useRef<string[]>([]);
   const hasEscalatedRef = useRef(false);
+
+  // Image upload state
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
+  const uploadedImageUrlsRef = useRef<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    uploadedImageUrlsRef.current = uploadedImageUrls;
+  }, [uploadedImageUrls]);
 
   useEffect(() => {
     // Listen for ChatKit postMessage events
@@ -349,6 +361,7 @@ function ActiveChat() {
                 subject: toolCall.params.subject,
                 summary: toolCall.params.summary,
                 conversation_transcript: toolCall.params.conversation_transcript,
+                image_urls: uploadedImageUrlsRef.current,
               }),
             }
           );
@@ -521,6 +534,37 @@ function ActiveChat() {
     },
   });
 
+  const handleImageUpload = async (file: File) => {
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const result = await uploadChatImage({
+        userId: getUserId(),
+        sessionId: getSessionId(),
+        file,
+      });
+
+      setUploadedImageUrls((prev) => [...prev, result.url]);
+
+      chatkit.sendUserMessage({
+        text: `I've uploaded an image: ${result.url}`,
+      });
+
+      console.log("[Trax] Image uploaded:", result.url);
+    } catch (err) {
+      const message =
+        err instanceof UploadError
+          ? err.message
+          : "Failed to upload image. Please try again.";
+      setUploadError(message);
+      setTimeout(() => setUploadError(null), 5000);
+      console.error("[Trax] Image upload error:", err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div
       style={{
@@ -552,6 +596,71 @@ function ActiveChat() {
           control={chatkit.control}
           style={{ height: "100%", width: "100%" }}
         />
+      </div>
+
+      {/* Hidden file input */}
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        ref={fileInputRef}
+        style={{ display: "none" }}
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (file) await handleImageUpload(file);
+          e.target.value = "";
+        }}
+      />
+
+      {/* Upload button bar */}
+      <div
+        style={{
+          padding: "8px 16px",
+          borderTop: "1px solid #eee",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          backgroundColor: "white",
+        }}
+      >
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "6px 12px",
+            fontSize: "13px",
+            color: "var(--trax-green, #4A7C59)",
+            background: "var(--trax-paper, #f5f2f0)",
+            border: "1px solid var(--trax-green, #4A7C59)",
+            borderRadius: "var(--trax-radius, 8px)",
+            cursor: isUploading ? "wait" : "pointer",
+            opacity: isUploading ? 0.6 : 1,
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+          {isUploading ? "Uploading..." : "Upload image"}
+        </button>
+
+        {uploadError && (
+          <span style={{ color: "#dc2626", fontSize: "12px" }}>
+            {uploadError}
+          </span>
+        )}
       </div>
 
       <div

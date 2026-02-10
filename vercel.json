@@ -3,6 +3,10 @@
     {
       "source": "/api/create-session",
       "destination": "https://n8n.curtainworld.net.au/webhook/chatkit-session"
+    },
+    {
+      "source": "/api/uploads/sign",
+      "destination": "https://n8n.curtainworld.net.au/webhook/upload-sign"
     }
   ]
 }
