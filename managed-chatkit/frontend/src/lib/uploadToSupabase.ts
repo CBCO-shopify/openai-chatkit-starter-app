@@ -28,20 +28,17 @@ export async function uploadChatImage(params: {
     throw new UploadError("Image must be under 5MB.", "too_large");
   }
 
-  // Step 1: Get signed upload URL from backend
-  const signRes = await fetch(
-    "https://n8n.curtainworld.net.au/webhook/upload-sign",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId,
-        sessionId,
-        fileName: file.name,
-        mimeType: file.type,
-      }),
-    }
-  );
+  // Step 1: Get signed upload URL from backend (via Vercel rewrite)
+  const signRes = await fetch("/api/uploads/sign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId,
+      sessionId,
+      fileName: file.name,
+      mimeType: file.type,
+    }),
+  });
 
   if (!signRes.ok) {
     const err = await signRes.json().catch(() => ({}));

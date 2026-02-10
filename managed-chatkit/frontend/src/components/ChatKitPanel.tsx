@@ -154,7 +154,7 @@ function ActiveChat() {
           if (userText) {
             console.log('[Trax] User message:', userText);
             
-            fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
+            fetch("/api/log-message", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -181,7 +181,7 @@ function ActiveChat() {
           if (threadId) {
             console.log('[Trax] Response ended, fetching assistant message...');
             
-            fetch("https://n8n.curtainworld.net.au/webhook/fetch-assistant-message", {
+            fetch("/api/fetch-assistant-message", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -202,7 +202,7 @@ function ActiveChat() {
     const handleBeforeUnload = () => {
       if (conversationRef.current.length > 0 && !hasEscalatedRef.current) {
         navigator.sendBeacon(
-          "https://n8n.curtainworld.net.au/webhook/log-session",
+          "/api/log-session",
           JSON.stringify({
             session_id: getSessionId(),
             summary: `Session ended (abandoned). ${conversationRef.current.length} messages exchanged.`,
@@ -267,7 +267,7 @@ function ActiveChat() {
         try {
           // Log user message
           if (toolCall.params.user_message) {
-            await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
+            await fetch("/api/log-message", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -283,7 +283,7 @@ function ActiveChat() {
 
           // Log assistant message
           if (toolCall.params.assistant_message) {
-            await fetch("https://n8n.curtainworld.net.au/webhook/log-message", {
+            await fetch("/api/log-message", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -314,7 +314,7 @@ function ActiveChat() {
         console.log("[Trax] Logging session");
         
         try {
-          const response = await fetch("https://n8n.curtainworld.net.au/webhook/log-session", {
+          const response = await fetch("/api/log-session", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -350,22 +350,19 @@ function ActiveChat() {
         hasEscalatedRef.current = true;
 
         try {
-          const response = await fetch(
-            "https://n8n.curtainworld.net.au/webhook/gorgias-escalation",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                thread_id: sessionStorage.getItem('trax_thread_id') || toolCall.params.thread_id || "",
-                customer_email: toolCall.params.customer_email,
-                customer_phone: toolCall.params.customer_phone || "",
-                subject: toolCall.params.subject,
-                summary: toolCall.params.summary,
-                conversation_transcript: toolCall.params.conversation_transcript,
-                image_urls: uploadedImageUrlsRef.current,
-              }),
-            }
-          );
+          const response = await fetch("/api/gorgias-escalation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              thread_id: sessionStorage.getItem('trax_thread_id') || toolCall.params.thread_id || "",
+              customer_email: toolCall.params.customer_email,
+              customer_phone: toolCall.params.customer_phone || "",
+              subject: toolCall.params.subject,
+              summary: toolCall.params.summary,
+              conversation_transcript: toolCall.params.conversation_transcript,
+              image_urls: uploadedImageUrlsRef.current,
+            }),
+          });
 
           if (!response.ok) throw new Error("Failed to create ticket");
 
@@ -390,17 +387,14 @@ function ActiveChat() {
       // ============================================
       if (toolCall.name === "lookup_order") {
         try {
-          const response = await fetch(
-            "https://n8n.curtainworld.net.au/webhook/order-lookup",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                order_number: toolCall.params.order_number,
-                email: toolCall.params.email,
-              }),
-            }
-          );
+          const response = await fetch("/api/order-lookup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              order_number: toolCall.params.order_number,
+              email: toolCall.params.email,
+            }),
+          });
 
           if (!response.ok) throw new Error("Failed to lookup order");
 
@@ -425,17 +419,14 @@ function ActiveChat() {
         
         try {
           console.log("Making fetch request to n8n...");
-          const response = await fetch(
-            "https://n8n.curtainworld.net.au/webhook/get-variant-id",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                product_id: toolCall.params.product_id,
-                color_name: toolCall.params.color_name || toolCall.params.color,
-              }),
-            }
-          );
+          const response = await fetch("/api/get-variant-id", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              product_id: toolCall.params.product_id,
+              color_name: toolCall.params.color_name || toolCall.params.color,
+            }),
+          });
 
           console.log("Fetch response status:", response.status);
 
@@ -548,13 +539,19 @@ function ActiveChat() {
 
       setUploadedImageUrls((prev) => [...prev, result.url]);
 
-      // Show thumbnail preview
+      // Show thumbnail preview briefly
       const localUrl = URL.createObjectURL(file);
       setUploadedPreviews((prev) => [...prev, { localUrl, name: file.name }]);
 
       chatkit.sendUserMessage({
         text: "I've uploaded an image.",
       });
+
+      // Auto-clear thumbnail after 3 seconds
+      setTimeout(() => {
+        URL.revokeObjectURL(localUrl);
+        setUploadedPreviews([]);
+      }, 3000);
 
       console.log("[Trax] Image uploaded:", result.url);
     } catch (err) {
@@ -616,7 +613,7 @@ function ActiveChat() {
         }}
       />
 
-      {/* Uploaded image previews */}
+      {/* Uploaded image preview (auto-clears after 3s) */}
       {uploadedPreviews.length > 0 && (
         <div
           style={{
