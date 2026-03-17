@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/crm-escalation",
+      "destination": "https://crm.curtainandblindco.com.au/api/support/trax-escalation"
+    },
+    {
       "source": "/api/create-session",
       "destination": "https://n8n.curtainworld.net.au/webhook/chatkit-session"
     },

@@ -366,6 +366,22 @@ function ActiveChat() {
 
           if (!response.ok) throw new Error("Failed to create ticket");
 
+          // Also create CRM support ticket (parallel, non-blocking)
+          fetch("/api/crm-escalation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              session_id: getSessionId(),
+              customer_email: toolCall.params.customer_email,
+              customer_phone: toolCall.params.customer_phone || "",
+              customer_name: toolCall.params.customer_name || "",
+              subject: toolCall.params.subject,
+              summary: toolCall.params.summary,
+              conversation_transcript: toolCall.params.conversation_transcript,
+              image_urls: uploadedImageUrlsRef.current,
+            }),
+          }).catch(e => console.warn("[Trax] CRM escalation failed (non-blocking):", e));
+
           return {
             success: true,
             message:
