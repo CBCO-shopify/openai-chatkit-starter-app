@@ -367,7 +367,7 @@ function ActiveChat() {
           if (!response.ok) throw new Error("Failed to create ticket");
 
           // Also create CRM support ticket (parallel, non-blocking)
-          fetch("/api/crm-escalation", {
+          fetch("https://crm.curtainandblindco.com.au/api/support/trax-escalation", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
